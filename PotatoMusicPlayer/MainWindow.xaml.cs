@@ -269,10 +269,13 @@ namespace PotatoMusicPlayer
 
         private void VolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            VolumeText.Text = $"{(int)e.NewValue}%";
+            if (VolumeText != null)
+            {
+                VolumeText.Text = $"{(int)e.NewValue}%";
+            }
 
-            // UpdatePlaybackDisplay からのプログラム的な更新時は再反映しない（無限ループ防止）
-            if (_isUpdatingVolumeFromCode)
+            // 初期化中やプログラム的な更新時は再反映しない（無限ループ防止）
+            if (_isUpdatingVolumeFromCode || _viewModel == null)
                 return;
 
             _viewModel.SetVolume(e.NewValue);

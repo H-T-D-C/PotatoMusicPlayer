@@ -8,8 +8,20 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <AssemblyName>PotatoMusicPlayer</AssemblyName>
     <RootNamespace>PotatoMusicPlayer</RootNamespace>
-    <ApplicationIcon></ApplicationIcon>
+    <ApplicationIcon>potato.ico</ApplicationIcon>
+    <PackageIcon>potato.png</PackageIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="potato.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\PotatoMusicPlayer\PotatoMusicPlayer\PotatoMusicPlayer\potato.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="LibVLCSharp" Version="3.9.0" />

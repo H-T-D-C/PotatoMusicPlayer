@@ -47,29 +47,23 @@ namespace PotatoMusicPlayer.Services
 
             try
             {
-                // 既存メディアをクリーンアップ
                 _currentMedia?.Dispose();
-
-                // 新しいメディアを作成
                 _currentMedia = new Media(_libVLC, filePath, FromType.FromPath);
-
-                // メディアイベントの登録
                 _currentMedia.ParsedChanged += OnMediaParsedChanged;
                 _currentMedia.StateChanged += OnMediaStateChanged;
-
-                // メディア情報をパース
                 _currentMedia.Parse(MediaParseOptions.ParseLocal);
 
-                // MediaPlayer の初期化
                 if (_mediaPlayer == null)
                 {
-                    _mediaPlayer = new MediaPlayer(_currentMedia);
+                    _mediaPlayer = new MediaPlayer(_libVLC);
+                    _mediaPlayer.EndReached += OnMediaEnded;
+                    _mediaPlayer.TimeChanged += OnMediaTimeChanged;
+                    _mediaPlayer.LengthChanged += OnMediaLengthChanged;
+                    _mediaPlayer.EncounteredError += OnMediaEncounteredError;
                 }
-                else
-                {
-                    _mediaPlayer.Media?.Dispose();
-                    _mediaPlayer.Media = _currentMedia;
-                }
+
+                _mediaPlayer.Stop();
+                _mediaPlayer.Media = _currentMedia;
 
                 return true;
             }
@@ -249,13 +243,6 @@ namespace PotatoMusicPlayer.Services
                 {
                     media.Parse(MediaParseOptions.ParseLocal);
                     
-                    if (media.Tracks.Length > 0)
-                    {
-                        var audioTrack = Array.Find(media.Tracks, t => t.TrackType == TrackType.Audio);
-                        // 仕様簡略化のため、複雑なプロパティ取得は省略
-                        // 以前のバージョンで SampleRate/Channels は利用可能でない場合がある
-                    }
-
                     info.Duration = TimeSpan.FromMilliseconds(media.Duration);
                 }
             }
@@ -310,14 +297,29 @@ namespace PotatoMusicPlayer.Services
 
         private void OnMediaStateChanged(object sender, MediaStateChangedEventArgs e)
         {
-            // メディア状態が変わった時の処理
+            PlaybackStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnMediaTimeChanged(object sender, MediaPlayerTimeChangedEventArgs e)
+        {
+            PositionChanged?.Invoke(this, TimeSpan.FromMilliseconds(e.Time));
+            PlaybackStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnMediaLengthChanged(object sender, MediaPlayerLengthChangedEventArgs e)
+        {
+            DurationChanged?.Invoke(this, TimeSpan.FromMilliseconds(e.Length));
             PlaybackStateChanged?.Invoke(this, EventArgs.Empty);
         }
 
         private void OnMediaEnded(object sender, EventArgs e)
         {
-            // メディアを再生し準備したときの処理
             MediaEnded?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnMediaEncounteredError(object sender, EventArgs e)
+        {
+            ErrorOccurred?.Invoke(this, "Media playback error.");
         }
 
         public void Dispose()
