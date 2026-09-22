@@ -1,0 +1,317 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using PotatoMusicPlayer.Models;
+using PotatoMusicPlayer.Services;
+using PotatoMusicPlayer.Utils;
+
+namespace PotatoMusicPlayer.ViewModels
+{
+    /// <summary>
+    /// メイン画面の ViewModel
+    /// UI と ビジネスロジックを分離
+    /// </summary>
+    public class MainViewModel : ObservableObject
+    {
+        private readonly MediaService _mediaService;
+        private readonly SettingsService _settingsService;
+        private System.Windows.Threading.DispatcherTimer _updateTimer;
+
+        // プロパティ
+        private MediaFile _currentMediaFile;
+        private PlaybackState _playbackState;
+        private bool _isLoading;
+        private string _statusMessage;
+
+        public MainViewModel()
+        {
+            _mediaService = new MediaService();
+            _settingsService = new SettingsService();
+
+            // イベント登録
+            _mediaService.PlaybackStateChanged += (s, e) => UpdatePlaybackState();
+            _mediaService.PositionChanged += (s, e) => UpdatePlaybackState();
+            _mediaService.DurationChanged += (s, e) => UpdatePlaybackState();
+            _mediaService.MediaEnded += (s, e) => OnMediaEnded();
+            _mediaService.ErrorOccurred += (s, msg) => StatusMessage = $"Error: {msg}";
+
+            // UI 更新タイマー
+            InitializeUpdateTimer();
+
+            // コマンド初期化
+            InitializeCommands();
+
+            // 初期状態設定
+            PlaybackState = new PlaybackState();
+            StatusMessage = "Ready to play music";
+        }
+
+        // ========== Public Properties ==========
+
+        public MediaFile CurrentMediaFile
+        {
+            get => _currentMediaFile;
+            set => SetProperty(ref _currentMediaFile, value);
+        }
+
+        public PlaybackState PlaybackState
+        {
+            get => _playbackState;
+            set => SetProperty(ref _playbackState, value);
+        }
+
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set => SetProperty(ref _isLoading, value);
+        }
+
+        public string StatusMessage
+        {
+            get => _statusMessage;
+            set => SetProperty(ref _statusMessage, value);
+        }
+
+        public AppSettings Settings => _settingsService.GetSettings();
+
+        // ========== Commands ==========
+
+        public ICommand OpenFileCommand { get; private set; }
+        public ICommand PlayPauseCommand { get; private set; }
+        public ICommand StopCommand { get; private set; }
+        public ICommand SkipForwardCommand { get; private set; }
+        public ICommand SkipBackwardCommand { get; private set; }
+        public ICommand VolumeUpCommand { get; private set; }
+        public ICommand VolumeDownCommand { get; private set; }
+        public ICommand SpeedIncreaseCommand { get; private set; }
+        public ICommand SpeedDecreaseCommand { get; private set; }
+        public ICommand SpeedResetCommand { get; private set; }
+        public ICommand ToggleLoopCommand { get; private set; }
+        public ICommand SetPositionCommand { get; private set; }
+        public ICommand OpenSettingsCommand { get; private set; }
+
+        // ========== Command Implementations ==========
+
+        private void InitializeCommands()
+        {
+            OpenFileCommand = new RelayCommand(_ => OpenFile());
+            PlayPauseCommand = new RelayCommand(_ => TogglePlayPause());
+            StopCommand = new RelayCommand(_ => Stop());
+            SkipForwardCommand = new RelayCommand(_ => SkipForward());
+            SkipBackwardCommand = new RelayCommand(_ => SkipBackward());
+            VolumeUpCommand = new RelayCommand(_ => IncreaseVolume());
+            VolumeDownCommand = new RelayCommand(_ => DecreaseVolume());
+            SpeedIncreaseCommand = new RelayCommand(_ => IncreaseSpeed());
+            SpeedDecreaseCommand = new RelayCommand(_ => DecreaseSpeed());
+            SpeedResetCommand = new RelayCommand(_ => ResetSpeed());
+            ToggleLoopCommand = new RelayCommand(_ => CycleLoopMode());
+            SetPositionCommand = new RelayCommand<double>(pos => SetPosition(pos));
+            OpenSettingsCommand = new RelayCommand(_ => OpenSettings());
+        }
+
+        public void OpenFile()
+        {
+            IsLoading = true;
+            try
+            {
+                // ファイルダイアログを開く（WPF 実装時に）
+                StatusMessage = "Select an audio file...";
+                // TODO: FileDialog の実装
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        public async Task LoadAndPlayFileAsync(string filePath)
+        {
+            if (!FileService.IsSupportedFormat(filePath))
+            {
+                StatusMessage = "Unsupported file format";
+                return;
+            }
+
+            IsLoading = true;
+            try
+            {
+                bool loaded = await _mediaService.LoadFileAsync(filePath);
+                if (loaded)
+                {
+                    CurrentMediaFile = _mediaService.GetMediaInfo(filePath);
+                    _settingsService.AddRecentFile(filePath);
+                    Play();
+                    StatusMessage = $"Loaded: {CurrentMediaFile.FileName}";
+                }
+                else
+                {
+                    StatusMessage = "Failed to load file";
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error: {ex.Message}";
+                Debug.WriteLine(ex);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        public void TogglePlayPause()
+        {
+            _mediaService.TogglePlayPause();
+            UpdatePlaybackState();
+        }
+
+        public void Play()
+        {
+            _mediaService.Play();
+            UpdatePlaybackState();
+        }
+
+        public void Pause()
+        {
+            _mediaService.Pause();
+            UpdatePlaybackState();
+        }
+
+        public void Stop()
+        {
+            _mediaService.Stop();
+            UpdatePlaybackState();
+        }
+
+        public void SkipForward()
+        {
+            float skipSeconds = _settingsService.GetSettings().SkipDurationSeconds;
+            _mediaService.SkipRelative(skipSeconds);
+        }
+
+        public void SkipBackward()
+        {
+            float skipSeconds = _settingsService.GetSettings().SkipDurationSeconds;
+            _mediaService.SkipRelative(-skipSeconds);
+        }
+
+        public void IncreaseVolume()
+        {
+            var settings = _settingsService.GetSettings();
+            float change = settings.VolumeChangePercent / 100.0f;
+            float maxVolume = settings.MaxVolumeMultiplier;
+            float newVolume = Math.Min(PlaybackState.Volume + change, maxVolume);
+            _mediaService.SetVolume(newVolume, maxVolume);
+            UpdatePlaybackState();
+        }
+
+        public void DecreaseVolume()
+        {
+            var settings = _settingsService.GetSettings();
+            float change = settings.VolumeChangePercent / 100.0f;
+            float newVolume = Math.Max(PlaybackState.Volume - change, 0.0f);
+            _mediaService.SetVolume(newVolume, settings.MaxVolumeMultiplier);
+            UpdatePlaybackState();
+        }
+
+        /// <summary>
+        /// 音量をパーセント指定で直接設定する（音量スライダーのドラッグ操作用）
+        /// </summary>
+        public void SetVolume(double percent)
+        {
+            var settings = _settingsService.GetSettings();
+            float volume = (float)(percent / 100.0);
+            volume = Math.Clamp(volume, 0.0f, settings.MaxVolumeMultiplier);
+            _mediaService.SetVolume(volume, settings.MaxVolumeMultiplier);
+            UpdatePlaybackState();
+        }
+
+        public void IncreaseSpeed()
+        {
+            var settings = _settingsService.GetSettings();
+            float change = settings.SpeedChangePercent / 100.0f;
+            float newSpeed = Math.Min(PlaybackState.PlaybackSpeed + change, 2.0f);
+            _mediaService.SetPlaybackSpeed(newSpeed);
+            UpdatePlaybackState();
+        }
+
+        public void DecreaseSpeed()
+        {
+            var settings = _settingsService.GetSettings();
+            float change = settings.SpeedChangePercent / 100.0f;
+            float newSpeed = Math.Max(PlaybackState.PlaybackSpeed - change, 0.25f);
+            _mediaService.SetPlaybackSpeed(newSpeed);
+            UpdatePlaybackState();
+        }
+
+        public void ResetSpeed()
+        {
+            _mediaService.SetPlaybackSpeed(1.0f);
+            UpdatePlaybackState();
+        }
+
+        public void CycleLoopMode()
+        {
+            PlaybackState.LoopMode = (LoopMode)(((int)PlaybackState.LoopMode + 1) % 3);
+            OnPropertyChanged(nameof(PlaybackState));
+        }
+
+        public void SetPosition(double seconds)
+        {
+            _mediaService.SetPosition((long)(seconds * 1000));
+        }
+
+        public void OpenSettings()
+        {
+            // 設定ウィンドウを開く（後で実装）
+            StatusMessage = "Opening settings...";
+        }
+
+        // ========== Private Methods ==========
+
+        private void InitializeUpdateTimer()
+        {
+            _updateTimer = new System.Windows.Threading.DispatcherTimer();
+            _updateTimer.Interval = TimeSpan.FromMilliseconds(Constants.UIUpdateIntervalMs);
+            _updateTimer.Tick += (s, e) => UpdatePlaybackState();
+            _updateTimer.Start();
+        }
+
+        private void UpdatePlaybackState()
+        {
+            var state = _mediaService.GetPlaybackState();
+            PlaybackState = state;
+        }
+
+        private void OnMediaEnded()
+        {
+            var settings = _settingsService.GetSettings();
+            if (settings.RememberLastFile && CurrentMediaFile != null)
+            {
+                settings.LastPlayedFilePath = CurrentMediaFile.FilePath;
+                _settingsService.SaveSettings(settings);
+            }
+
+            // ループモードに応じた処理
+            if (PlaybackState.LoopMode == LoopMode.One && CurrentMediaFile != null)
+            {
+                Play();  // 1曲ループ
+            }
+            else if (PlaybackState.LoopMode == LoopMode.All)
+            {
+                // 全体ループ（次の曲へ）
+                // プレイリスト機能がないので、ここでは何もしない
+            }
+
+            StatusMessage = "Playback finished";
+        }
+
+        public void Dispose()
+        {
+            _updateTimer?.Stop();
+            _mediaService?.Dispose();
+        }
+    }
+}

@@ -1,0 +1,158 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+
+namespace PotatoMusicPlayer.Models
+{
+    /// <summary>
+    /// 言語設定
+    /// </summary>
+    public enum Language
+    {
+        EnglishUS = 0,
+        Japanese = 1
+    }
+
+    /// <summary>
+    /// アプリケーション全体の設定
+    /// </summary>
+    [Serializable]
+    public class AppSettings
+    {
+        // ウィンドウ設定
+        public double WindowWidth { get; set; } = 900;
+        public double WindowHeight { get; set; } = 400;
+        public double WindowLeft { get; set; } = 100;
+        public double WindowTop { get; set; } = 100;
+        public bool IsAlwaysOnTop { get; set; } = false;
+        public bool IsWindowSizeFixed { get; set; } = false;
+        public bool IsFullScreen { get; set; } = false;
+
+        // 再生設定
+        public float DefaultVolume { get; set; } = 0.8f;  // 0.0 ~ 1.0 (1.0 = 100%)
+        public float MaxVolumeMultiplier { get; set; } = 2.0f;  // 音量上限。2.0 = 200%
+        public float DefaultPlaybackSpeed { get; set; } = 1.0f;
+        public bool ResetVolumeOnStartup { get; set; } = false;
+        public bool ResetPlaybackSpeedOnStartup { get; set; } = false;
+        public bool RememberLastPlaybackSpeed { get; set; } = true;
+        public bool RememberLastVolume { get; set; } = true;
+
+        // 波形表示設定
+        public bool ShowWaveform { get; set; } = true;
+
+        // スキップ・操作値設定
+        public int SkipDurationSeconds { get; set; } = 5;  // 5秒スキップ
+        public float StepDurationSeconds { get; set; } = 0.1f;  // 0.1秒ステップ
+        public int VolumeChangePercent { get; set; } = 5;  // 5%ずつ
+        public int SpeedChangePercent { get; set; } = 5;  // 5%ずつ
+
+        // ファイル管理
+        public List<string> RecentFiles { get; set; } = new List<string>();
+        public int MaxRecentFiles { get; set; } = 50;
+        public bool RememberLastFile { get; set; } = true;
+        public string LastPlayedFilePath { get; set; } = "";
+
+        // 言語・地域
+        public Language Language { get; set; } = Language.EnglishUS;
+
+        // オーディオ設定
+        public string AudioOutputDevice { get; set; } = "Default";
+
+        // ホットキー設定
+        public List<HotKeyBinding> HotKeyBindings { get; set; } = new List<HotKeyBinding>();
+
+        /// <summary>
+        /// デフォルト設定を初期化
+        /// </summary>
+        public void InitializeDefaultHotKeys()
+        {
+            if (HotKeyBindings == null)
+                HotKeyBindings = new List<HotKeyBinding>();
+
+            HotKeyBindings.Clear();
+
+            // デフォルトホットキー定義
+            HotKeyBindings.AddRange(new[]
+            {
+                new HotKeyBinding 
+                { 
+                    Action = HotKeyAction.PlayPause, 
+                    Key = System.Windows.Input.Key.Space,
+                    DisplayName = "再生/一時停止"
+                },
+                new HotKeyBinding 
+                { 
+                    Action = HotKeyAction.Stop, 
+                    Key = System.Windows.Input.Key.End,
+                    DisplayName = "停止"
+                },
+                new HotKeyBinding 
+                { 
+                    Action = HotKeyAction.SkipBackward5s, 
+                    Key = System.Windows.Input.Key.Left,
+                    DisplayName = "5秒戻る"
+                },
+                new HotKeyBinding 
+                { 
+                    Action = HotKeyAction.SkipForward5s, 
+                    Key = System.Windows.Input.Key.Right,
+                    DisplayName = "5秒進む"
+                },
+                new HotKeyBinding 
+                { 
+                    Action = HotKeyAction.VolumeUp, 
+                    Key = System.Windows.Input.Key.Up,
+                    DisplayName = "音量上げる"
+                },
+                new HotKeyBinding 
+                { 
+                    Action = HotKeyAction.VolumeDown, 
+                    Key = System.Windows.Input.Key.Down,
+                    DisplayName = "音量下げる"
+                },
+                new HotKeyBinding 
+                { 
+                    Action = HotKeyAction.Mute, 
+                    Key = System.Windows.Input.Key.M,
+                    DisplayName = "ミュート"
+                },
+                new HotKeyBinding 
+                { 
+                    Action = HotKeyAction.StepBackward01s, 
+                    Key = System.Windows.Input.Key.OemComma,  // コンマ
+                    DisplayName = "0.1秒戻る"
+                },
+                new HotKeyBinding 
+                { 
+                    Action = HotKeyAction.StepForward01s, 
+                    Key = System.Windows.Input.Key.OemPeriod,  // ドット
+                    DisplayName = "0.1秒進む"
+                },
+                new HotKeyBinding 
+                { 
+                    Action = HotKeyAction.GoToStart, 
+                    Key = System.Windows.Input.Key.Home,
+                    DisplayName = "最初に戻る"
+                },
+                new HotKeyBinding 
+                { 
+                    Action = HotKeyAction.SpeedDecrease, 
+                    Key = System.Windows.Input.Key.A,
+                    DisplayName = "速度低下(5%)"
+                },
+                new HotKeyBinding 
+                { 
+                    Action = HotKeyAction.SpeedIncrease, 
+                    Key = System.Windows.Input.Key.D,
+                    DisplayName = "速度上昇(5%)"
+                },
+                new HotKeyBinding 
+                { 
+                    Action = HotKeyAction.SpeedReset, 
+                    Key = System.Windows.Input.Key.S,
+                    DisplayName = "速度リセット(100%)"
+                }
+            });
+        }
+    }
+}

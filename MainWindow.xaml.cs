@@ -14,7 +14,6 @@ namespace PotatoMusicPlayer
     {
         private readonly MainViewModel _viewModel;
         private bool _isDraggingSeekBar = false;
-        private bool _isUpdatingVolumeFromCode = false;
 
         public MainWindow()
         {
@@ -122,26 +121,10 @@ namespace PotatoMusicPlayer
             SpeedText.Text = $"{state.PlaybackSpeed:0.00}x";
             LoopButton.Content = $"Loop: {state.LoopModeDisplayString}";
 
-            // Duration はメディア読み込み直後は 0 のことがあるため、
-            // 再生中は毎tickで Maximum を実際の長さに追従させる（シークバー右端張り付き対策）
-            if (state.Duration.TotalSeconds > 0)
-            {
-                if (SeekBar.Maximum != state.Duration.TotalSeconds)
-                    SeekBar.Maximum = state.Duration.TotalSeconds;
-
-                TotalTimeText.Text = FormatTime(state.Duration);
-            }
-
             if (!_isDraggingSeekBar)
             {
                 SeekBar.Value = state.CurrentPosition.TotalSeconds;
             }
-
-            // 音量バーを実際の音量に追従させる（ホットキー操作時も反映）
-            _isUpdatingVolumeFromCode = true;
-            VolumeSlider.Value = state.VolumePercent;
-            VolumeText.Text = $"{state.VolumePercent}%";
-            _isUpdatingVolumeFromCode = false;
         }
 
         private string FormatTime(TimeSpan ts)
@@ -269,13 +252,12 @@ namespace PotatoMusicPlayer
 
         private void VolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            VolumeText.Text = $"{(int)e.NewValue}%";
-
-            // UpdatePlaybackDisplay からのプログラム的な更新時は再反映しない（無限ループ防止）
-            if (_isUpdatingVolumeFromCode)
-                return;
-
-            _viewModel.SetVolume(e.NewValue);
+            if (VolumeText != null)
+            {
+                VolumeText.Text = $"{(int)e.NewValue}%";
+            }
+            // Slider の値(0-200)を 0.0-2.0 に変換して設定
+            // 実際の反映は MediaService 経由で行う想定（ここでは表示のみ簡易実装）
         }
 
         // ========== ホットキー処理(アプリ内フォーカス時) ==========
