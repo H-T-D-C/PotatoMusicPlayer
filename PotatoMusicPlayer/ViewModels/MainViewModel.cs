@@ -265,8 +265,23 @@ namespace PotatoMusicPlayer.ViewModels
 
         public void OpenSettings()
         {
-            // 設定ウィンドウを開く（後で実装）
-            StatusMessage = "Opening settings...";
+            // 設定ウィンドウを開く（UIスレッドで実行される前提）
+            try
+            {
+                var window = new PotatoMusicPlayer.Views.SettingsWindow(_settingsService);
+                var owner = System.Windows.Application.Current?.MainWindow;
+                if (owner != null)
+                    window.Owner = owner;
+
+                bool? result = window.ShowDialog();
+
+                // 設定が適用された可能性があるため、プロパティを更新して UI に反映させる
+                OnPropertyChanged(nameof(Settings));
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Failed to open settings: {ex.Message}";
+            }
         }
 
         // ========== Private Methods ==========

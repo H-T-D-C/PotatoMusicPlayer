@@ -32,6 +32,9 @@ namespace PotatoMusicPlayer
             // ホットキー処理
             PreviewKeyDown += MainWindow_PreviewKeyDown;
 
+            // Recent files メニューを初期化
+            UpdateRecentFilesMenu();
+
             Closing += MainWindow_Closing;
         }
 
@@ -179,6 +182,7 @@ namespace PotatoMusicPlayer
             if (dialog.ShowDialog() == true)
             {
                 await _viewModel.LoadAndPlayFileAsync(dialog.FileName);
+                UpdateRecentFilesMenu();
             }
         }
 
@@ -186,6 +190,7 @@ namespace PotatoMusicPlayer
         {
             if (_viewModel.CurrentMediaFile != null)
             {
+                // FileService はファイルパスも受け取り選択表示するのでそのまま渡す
                 FileService.OpenFolderInExplorer(_viewModel.CurrentMediaFile.FilePath);
             }
         }

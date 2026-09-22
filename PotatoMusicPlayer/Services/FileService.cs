@@ -34,21 +34,40 @@ namespace PotatoMusicPlayer.Services
         }
 
         /// <summary>
-        /// フォルダをエクスプローラーで開く
+        /// フォルダまたはファイルをエクスプローラーで開く。
+        /// - フォルダパスが渡された場合はそのフォルダを開く。
+        /// - ファイルパスが渡された場合はそのファイルを選択表示する。
         /// </summary>
-        public static void OpenFolderInExplorer(string folderPath)
+        public static void OpenFolderInExplorer(string path)
         {
             try
             {
-                if (!Directory.Exists(folderPath))
+                if (string.IsNullOrEmpty(path))
                     return;
 
-                Process.Start(new ProcessStartInfo
+                // ファイルが存在する場合は /select, を使ってファイルを選択
+                if (File.Exists(path))
                 {
-                    FileName = "explorer.exe",
-                    Arguments = $"/select,\"{folderPath}\"",
-                    UseShellExecute = true
-                });
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments = $"/select,\"{path}\"",
+                        UseShellExecute = true
+                    });
+                    return;
+                }
+
+                // フォルダが存在する場合はそのフォルダを開く
+                if (Directory.Exists(path))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments = $"\"{path}\"",
+                        UseShellExecute = true
+                    });
+                    return;
+                }
             }
             catch (Exception ex)
             {
