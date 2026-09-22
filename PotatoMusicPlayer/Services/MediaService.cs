@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using LibVLCSharp.Shared;
 using PotatoMusicPlayer.Models;
@@ -14,6 +15,7 @@ namespace PotatoMusicPlayer.Services
         private MediaPlayer _mediaPlayer;
         private Media _currentMedia;
         private bool _isInitialized = false;
+        private readonly SynchronizationContext _syncContext;
 
         // イベント
         public event EventHandler<TimeSpan> PositionChanged;
@@ -22,8 +24,21 @@ namespace PotatoMusicPlayer.Services
         public event EventHandler MediaEnded;
         public event EventHandler<string> ErrorOccurred;
 
+        private void Raise(Action action)
+        {
+            if (_syncContext != null)
+            {
+                _syncContext.Post(_ => action(), null);
+            }
+            else
+            {
+                action();
+            }
+        }
+
         public MediaService()
         {
+            _syncContext = SynchronizationContext.Current;
             try
             {
                 // LibVLCの初期化
@@ -33,7 +48,7 @@ namespace PotatoMusicPlayer.Services
             }
             catch (Exception ex)
             {
-                ErrorOccurred?.Invoke(this, $"LibVLC initialization failed: {ex.Message}");
+                Raise(() => ErrorOccurred?.Invoke(this, $"LibVLC initialization failed: {ex.Message}"));
             }
         }
 
@@ -79,7 +94,7 @@ namespace PotatoMusicPlayer.Services
             }
             catch (Exception ex)
             {
-                ErrorOccurred?.Invoke(this, $"Failed to load file: {ex.Message}");
+                Raise(() => ErrorOccurred?.Invoke(this, $"Failed to load file: {ex.Message}"));
                 return false;
             }
         }
@@ -94,12 +109,12 @@ namespace PotatoMusicPlayer.Services
                 if (_mediaPlayer != null)
                 {
                     _mediaPlayer.Play();
-                    PlaybackStateChanged?.Invoke(this, EventArgs.Empty);
+                    Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
                 }
             }
             catch (Exception ex)
             {
-                ErrorOccurred?.Invoke(this, $"Play failed: {ex.Message}");
+                Raise(() => ErrorOccurred?.Invoke(this, $"Play failed: {ex.Message}"));
             }
         }
 
@@ -113,12 +128,12 @@ namespace PotatoMusicPlayer.Services
                 if (_mediaPlayer != null && _mediaPlayer.IsPlaying)
                 {
                     _mediaPlayer.Pause();
-                    PlaybackStateChanged?.Invoke(this, EventArgs.Empty);
+                    Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
                 }
             }
             catch (Exception ex)
             {
-                ErrorOccurred?.Invoke(this, $"Pause failed: {ex.Message}");
+                Raise(() => ErrorOccurred?.Invoke(this, $"Pause failed: {ex.Message}"));
             }
         }
 
@@ -147,12 +162,12 @@ namespace PotatoMusicPlayer.Services
                 {
                     _mediaPlayer.Stop();
                     _mediaPlayer.Time = 0;
-                    PlaybackStateChanged?.Invoke(this, EventArgs.Empty);
+                    Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
                 }
             }
             catch (Exception ex)
             {
-                ErrorOccurred?.Invoke(this, $"Stop failed: {ex.Message}");
+                Raise(() => ErrorOccurred?.Invoke(this, $"Stop failed: {ex.Message}"));
             }
         }
 
@@ -166,12 +181,12 @@ namespace PotatoMusicPlayer.Services
                 if (_mediaPlayer != null)
                 {
                     _mediaPlayer.Time = milliseconds;
-                    PositionChanged?.Invoke(this, TimeSpan.FromMilliseconds(milliseconds));
+                    Raise(() => PositionChanged?.Invoke(this, TimeSpan.FromMilliseconds(milliseconds)));
                 }
             }
             catch (Exception ex)
             {
-                ErrorOccurred?.Invoke(this, $"SetPosition failed: {ex.Message}");
+                Raise(() => ErrorOccurred?.Invoke(this, $"SetPosition failed: {ex.Message}"));
             }
         }
 
@@ -192,7 +207,7 @@ namespace PotatoMusicPlayer.Services
             }
             catch (Exception ex)
             {
-                ErrorOccurred?.Invoke(this, $"SkipRelative failed: {ex.Message}");
+                Raise(() => ErrorOccurred?.Invoke(this, $"SkipRelative failed: {ex.Message}"));
             }
         }
 
@@ -212,7 +227,7 @@ namespace PotatoMusicPlayer.Services
             }
             catch (Exception ex)
             {
-                ErrorOccurred?.Invoke(this, $"SetVolume failed: {ex.Message}");
+                Raise(() => ErrorOccurred?.Invoke(this, $"SetVolume failed: {ex.Message}"));
             }
         }
 
@@ -231,7 +246,7 @@ namespace PotatoMusicPlayer.Services
             }
             catch (Exception ex)
             {
-                ErrorOccurred?.Invoke(this, $"SetPlaybackSpeed failed: {ex.Message}");
+                Raise(() => ErrorOccurred?.Invoke(this, $"SetPlaybackSpeed failed: {ex.Message}"));
             }
         }
 
@@ -263,7 +278,7 @@ namespace PotatoMusicPlayer.Services
             }
             catch (Exception ex)
             {
-                ErrorOccurred?.Invoke(this, $"GetMediaInfo failed: {ex.Message}");
+                Raise(() => ErrorOccurred?.Invoke(this, $"GetMediaInfo failed: {ex.Message}"));
             }
 
             return info;
@@ -289,7 +304,7 @@ namespace PotatoMusicPlayer.Services
             }
             catch (Exception ex)
             {
-                ErrorOccurred?.Invoke(this, $"GetPlaybackState failed: {ex.Message}");
+                Raise(() => ErrorOccurred?.Invoke(this, $"GetPlaybackState failed: {ex.Message}"));
             }
 
             return state;
@@ -306,35 +321,35 @@ namespace PotatoMusicPlayer.Services
         {
             if (_currentMedia != null)
             {
-                DurationChanged?.Invoke(this, TimeSpan.FromMilliseconds(_currentMedia.Duration));
+                Raise(() => DurationChanged?.Invoke(this, TimeSpan.FromMilliseconds(_currentMedia.Duration)));
             }
         }
 
         private void OnMediaStateChanged(object sender, MediaStateChangedEventArgs e)
         {
-            PlaybackStateChanged?.Invoke(this, EventArgs.Empty);
+            Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
         }
 
         private void OnMediaTimeChanged(object sender, MediaPlayerTimeChangedEventArgs e)
         {
-            PositionChanged?.Invoke(this, TimeSpan.FromMilliseconds(e.Time));
-            PlaybackStateChanged?.Invoke(this, EventArgs.Empty);
+            Raise(() => PositionChanged?.Invoke(this, TimeSpan.FromMilliseconds(e.Time)));
+            Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
         }
 
         private void OnMediaLengthChanged(object sender, MediaPlayerLengthChangedEventArgs e)
         {
-            DurationChanged?.Invoke(this, TimeSpan.FromMilliseconds(e.Length));
-            PlaybackStateChanged?.Invoke(this, EventArgs.Empty);
+            Raise(() => DurationChanged?.Invoke(this, TimeSpan.FromMilliseconds(e.Length)));
+            Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
         }
 
         private void OnMediaEnded(object sender, EventArgs e)
         {
-            MediaEnded?.Invoke(this, EventArgs.Empty);
+            Raise(() => MediaEnded?.Invoke(this, EventArgs.Empty));
         }
 
         private void OnMediaEncounteredError(object sender, EventArgs e)
         {
-            ErrorOccurred?.Invoke(this, "Media playback error.");
+            Raise(() => ErrorOccurred?.Invoke(this, "Media playback error."));
         }
 
         public void Dispose()

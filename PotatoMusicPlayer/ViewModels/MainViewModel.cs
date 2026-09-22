@@ -282,6 +282,11 @@ namespace PotatoMusicPlayer.ViewModels
         private void UpdatePlaybackState()
         {
             var state = _mediaService.GetPlaybackState();
+            // Preserve UI-controlled properties (LoopMode) so they are not overwritten by media service snapshot
+            if (PlaybackState != null)
+            {
+                state.LoopMode = PlaybackState.LoopMode;
+            }
             PlaybackState = state;
         }
 
@@ -295,14 +300,20 @@ namespace PotatoMusicPlayer.ViewModels
             }
 
             // ループモードに応じた処理
-            if (PlaybackState.LoopMode == LoopMode.One && CurrentMediaFile != null)
+            if (CurrentMediaFile != null)
             {
-                Play();  // 1曲ループ
-            }
-            else if (PlaybackState.LoopMode == LoopMode.All)
-            {
-                // 全体ループ（次の曲へ）
-                // プレイリスト機能がないので、ここでは何もしない
+                if (PlaybackState.LoopMode == LoopMode.One)
+                {
+                    // 1曲ループ: 停止して先頭に戻し、再生
+                    Stop();
+                    Play();
+                }
+                else if (PlaybackState.LoopMode == LoopMode.All)
+                {
+                    // 全体ループ: プレイリスト未実装のため現状は同様に同一トラックをループ
+                    Stop();
+                    Play();
+                }
             }
 
             StatusMessage = "Playback finished";
