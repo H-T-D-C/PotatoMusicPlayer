@@ -140,7 +140,7 @@ namespace PotatoMusicPlayer.ViewModels
                 bool loaded = await _mediaService.LoadFileAsync(filePath);
                 if (loaded)
                 {
-                    CurrentMediaFile = _mediaService.GetMediaInfo(filePath);
+                    CurrentMediaFile = await _mediaService.GetMediaInfoAsync(filePath);
                     _settingsService.AddRecentFile(filePath);
                     Play();
                     StatusMessage = $"Loaded: {CurrentMediaFile.FileName}";

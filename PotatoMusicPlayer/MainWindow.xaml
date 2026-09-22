@@ -13,11 +13,16 @@
     <Border BorderBrush="#4A4A4A" BorderThickness="1">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>   <!-- カスタムタイトルバー + メニュー -->
-                <RowDefinition Height="Auto"/>   <!-- メタデータ表示 -->
-                <RowDefinition Height="Auto"/>   <!-- 時間 / 再生バー -->
-                <RowDefinition Height="*"/>      <!-- 波形表示 -->
-                <RowDefinition Height="Auto"/>   <!-- トランスポートコントロール -->
+                <RowDefinition Height="Auto"/>
+                <!-- カスタムタイトルバー + メニュー -->
+                <RowDefinition Height="Auto"/>
+                <!-- メタデータ表示 -->
+                <RowDefinition Height="Auto"/>
+                <!-- 時間 / 再生バー -->
+                <RowDefinition Height="*"/>
+                <!-- 波形表示 -->
+                <RowDefinition Height="Auto"/>
+                <!-- トランスポートコントロール -->
             </Grid.RowDefinitions>
 
             <!-- ============ タイトルバー(メニュー統合) ============ -->
@@ -134,7 +139,7 @@
                     <TextBlock Text="🔊" FontSize="12" Margin="0,0,4,0" VerticalAlignment="Center"/>
                     <Slider x:Name="VolumeSlider" Width="70" Minimum="0" Maximum="200" Value="80"
                             VerticalAlignment="Center" ValueChanged="VolumeSlider_ValueChanged"/>
-                    <TextBlock x:Name="VolumeText" Text="80%" Foreground="#969696" FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="VolumeText" Text="80%" Foreground="#969696" FontSize="10" Margin="6,0,0,0" VerticalAlignment="Center" Width="26" TextAlignment="Right"/>
                 </StackPanel>
             </Grid>
         </Grid>

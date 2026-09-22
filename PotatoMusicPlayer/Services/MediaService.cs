@@ -47,11 +47,21 @@ namespace PotatoMusicPlayer.Services
 
             try
             {
+                // 古いメディアを破棄（UIスレッドで）
                 _currentMedia?.Dispose();
-                _currentMedia = new Media(_libVLC, filePath, FromType.FromPath);
+
+                // メディアのパースは LibVLC 側で重い場合があるためバックグラウンドで行う
+                var newMedia = await Task.Run(() =>
+                {
+                    var m = new Media(_libVLC, filePath, FromType.FromPath);
+                    m.Parse(MediaParseOptions.ParseLocal);
+                    return m;
+                });
+
+                // イベントは UI スレッド側で登録する
+                _currentMedia = newMedia;
                 _currentMedia.ParsedChanged += OnMediaParsedChanged;
                 _currentMedia.StateChanged += OnMediaStateChanged;
-                _currentMedia.Parse(MediaParseOptions.ParseLocal);
 
                 if (_mediaPlayer == null)
                 {
@@ -226,9 +236,9 @@ namespace PotatoMusicPlayer.Services
         }
 
         /// <summary>
-        /// メディア情報を取得
+        /// メディア情報を取得（非同期）
         /// </summary>
-        public MediaFile GetMediaInfo(string filePath)
+        public async Task<MediaFile> GetMediaInfoAsync(string filePath)
         {
             var info = new MediaFile
             {
@@ -239,12 +249,17 @@ namespace PotatoMusicPlayer.Services
 
             try
             {
-                using (var media = new Media(_libVLC, filePath, FromType.FromPath))
+                // 重いパース処理はバックグラウンドで行う
+                var duration = await Task.Run(() =>
                 {
-                    media.Parse(MediaParseOptions.ParseLocal);
-                    
-                    info.Duration = TimeSpan.FromMilliseconds(media.Duration);
-                }
+                    using (var media = new Media(_libVLC, filePath, FromType.FromPath))
+                    {
+                        media.Parse(MediaParseOptions.ParseLocal);
+                        return TimeSpan.FromMilliseconds(media.Duration);
+                    }
+                });
+
+                info.Duration = duration;
             }
             catch (Exception ex)
             {
