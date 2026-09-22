@@ -259,10 +259,38 @@ namespace PotatoMusicPlayer
 
         // ========== 再生バー(シークバー) ==========
 
+        private void SeekBar_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _isDraggingSeekBar = true;
+            SeekBar.CaptureMouse();
+            UpdateSeekBarValueFromMouse(e);
+        }
+
+        private void SeekBar_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (!_isDraggingSeekBar || e.LeftButton != MouseButtonState.Pressed)
+                return;
+
+            UpdateSeekBarValueFromMouse(e);
+        }
+
         private void SeekBar_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             _isDraggingSeekBar = false;
+            SeekBar.ReleaseMouseCapture();
             _viewModel.SetPosition(SeekBar.Value);
+            _viewModel.Play();
+        }
+
+        private void UpdateSeekBarValueFromMouse(MouseEventArgs e)
+        {
+            // マウス位置からシークバー値を計算して即時反映（UI スレッド）
+            var pos = e.GetPosition(SeekBar);
+            double relative = SeekBar.ActualWidth > 0 ? pos.X / SeekBar.ActualWidth : 0;
+            relative = Math.Max(0.0, Math.Min(1.0, relative));
+            double newVal = SeekBar.Minimum + relative * (SeekBar.Maximum - SeekBar.Minimum);
+            SeekBar.Value = newVal;
+            CurrentTimeText.Text = FormatTime(TimeSpan.FromSeconds(newVal));
         }
 
         // ========== 音量スライダー ==========

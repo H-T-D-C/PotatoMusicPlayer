@@ -99,6 +99,8 @@
 
                 <Slider x:Name="SeekBar" Grid.Column="1" Minimum="0" Maximum="100" Value="0"
                         VerticalAlignment="Center"
+                        PreviewMouseLeftButtonDown="SeekBar_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="SeekBar_PreviewMouseMove"
                         PreviewMouseLeftButtonUp="SeekBar_PreviewMouseLeftButtonUp"/>
 
                 <TextBlock x:Name="TotalTimeText" Grid.Column="2" Text="00:00" Foreground="#969696"
