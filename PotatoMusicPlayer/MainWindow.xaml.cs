@@ -141,6 +141,10 @@ namespace PotatoMusicPlayer
             if (state == null) return;
 
             PlayPauseButton.Content = state.State == PlayState.Playing ? "⏸" : "▶";
+            TaskbarPlayPauseButton.Description = state.State == PlayState.Playing ? "Pause" : "Play";
+            TaskbarPlayPauseButton.ImageSource = state.State == PlayState.Playing
+                ? (System.Windows.Media.ImageSource)FindResource("TaskbarPauseIcon")
+                : (System.Windows.Media.ImageSource)FindResource("TaskbarPlayIcon");
             CurrentTimeText.Text = FormatTime(state.CurrentPosition);
             SpeedText.Text = $"{state.PlaybackSpeed:0.00}x";
             LoopButton.Content = $"Loop: {state.LoopModeDisplayString}";
@@ -237,6 +241,10 @@ namespace PotatoMusicPlayer
 
         private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
         private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+        private void TaskbarPrevious_Click(object sender, EventArgs e) => _viewModel.SetPosition(0);
+        private void TaskbarPlayPause_Click(object sender, EventArgs e) => _viewModel.TogglePlayPause();
+        private void TaskbarNext_Click(object sender, EventArgs e) => _viewModel.Stop();
 
         // ========== メニュー: ファイル ==========
 

@@ -1,8 +1,10 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 using LibVLCSharp.Shared;
 using PotatoMusicPlayer.Models;
+using TagLib;
 
 namespace PotatoMusicPlayer.Services
 {
@@ -18,6 +20,7 @@ namespace PotatoMusicPlayer.Services
         private readonly SynchronizationContext _syncContext;
         // ファイル未読み込み状態でも音量設定を保持する（再生開始時に適用される）
         private float _desiredVolume = 0.8f;
+        private TimeSpan _lastDuration = TimeSpan.Zero;
 
         // イベント
         public event EventHandler<TimeSpan> PositionChanged;
@@ -287,6 +290,32 @@ namespace PotatoMusicPlayer.Services
                 Raise(() => ErrorOccurred?.Invoke(this, $"GetMediaInfo failed: {ex.Message}"));
             }
 
+            // タグ情報は再生用のLibVLC解析とは独立して取得する。
+            try
+            {
+                await Task.Run(() =>
+                {
+                    using (var tagFile = TagLib.File.Create(filePath))
+                    {
+                        info.Title = tagFile.Tag.Title;
+                        info.Artist = tagFile.Tag.Performers?.FirstOrDefault();
+                        info.Album = tagFile.Tag.Album;
+                        info.Genre = tagFile.Tag.FirstGenre;
+                        info.Bitrate = tagFile.Properties.AudioBitrate;
+                        info.SampleRate = tagFile.Properties.AudioSampleRate;
+                        info.Channels = tagFile.Properties.AudioChannels;
+
+                        if (info.Duration <= TimeSpan.Zero)
+                            info.Duration = tagFile.Properties.Duration;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                // タグが読めないファイルでも再生とファイル名表示は継続する。
+                System.Diagnostics.Debug.WriteLine($"Metadata read failed: {ex.Message}");
+            }
+
             return info;
         }
 
@@ -308,8 +337,10 @@ namespace PotatoMusicPlayer.Services
             {
                 state.State = _mediaPlayer.IsPlaying ? PlayState.Playing : PlayState.Paused;
                 state.CurrentPosition = TimeSpan.FromMilliseconds(_mediaPlayer.Time);
-                state.Duration = TimeSpan.FromMilliseconds(_mediaPlayer.Length);
-                state.Volume = _mediaPlayer.Volume / 100.0f;
+                var playerDuration = TimeSpan.FromMilliseconds(_mediaPlayer.Length);
+                state.Duration = playerDuration > TimeSpan.Zero ? playerDuration : _lastDuration;
+                // Stop()直後など、LibVLCが一時的に0を返す場合も希望音量を維持する。
+                state.Volume = _desiredVolume;
                 state.PlaybackSpeed = _mediaPlayer.Rate;
             }
             catch (Exception ex)
@@ -348,6 +379,7 @@ namespace PotatoMusicPlayer.Services
 
         private void OnMediaLengthChanged(object sender, MediaPlayerLengthChangedEventArgs e)
         {
+            _lastDuration = TimeSpan.FromMilliseconds(e.Length);
             Raise(() => DurationChanged?.Invoke(this, TimeSpan.FromMilliseconds(e.Length)));
             Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
         }
