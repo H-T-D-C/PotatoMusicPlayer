@@ -93,6 +93,7 @@
                         <MenuItem x:Name="PlaybackStopMenuItem" Header="停止" Click="Stop_Click"/>
                         <Separator/>
                         <MenuItem x:Name="PlaybackGoToStartMenuItem" Header="最初へ戻る" Click="GoToStart_Click"/>
+                        <MenuItem x:Name="PlaybackSeekToTimeMenuItem" Header="指定時刻へ移動..." Click="SeekToTime_Click"/>
                         <Separator/>
                         <MenuItem x:Name="PlaybackSpeedResetMenuItem" Header="速度: 100%にセット" Click="SpeedReset_Click"/>
                         <MenuItem x:Name="PlaybackSpeedDecreaseMenuItem" Header="速度: 5%遅く" Click="SpeedDecrease_Click"/>
@@ -104,7 +105,12 @@
                     <MenuItem x:Name="ViewMenuItem" Header="表示">
                         <MenuItem x:Name="AlwaysOnTopMenuItem" Header="常に最前面" IsCheckable="True" Click="AlwaysOnTop_Click"/>
                         <MenuItem x:Name="FixWindowSizeMenuItem" Header="ウィンドウサイズ固定" IsCheckable="True" Click="FixWindowSize_Click"/>
-                        <MenuItem x:Name="ShowWaveformMenuItem" Header="波形を表示" IsCheckable="True" IsChecked="True" Click="ShowWaveform_Click"/>
+                        <MenuItem x:Name="WaveformMenuItem" Header="波形">
+                            <MenuItem x:Name="ShowWaveformMenuItem" Header="波形を表示" IsCheckable="True" IsChecked="True" Click="ShowWaveform_Click"/>
+                            <MenuItem x:Name="CenterFixedWaveformMenuItem" Header="再生ヘッドを中央に固定" IsCheckable="True" Click="CenterFixedWaveform_Click"/>
+                            <Separator/>
+                            <MenuItem x:Name="WaveformRangeMenuItem" Header="範囲を指定して拡大..." Click="WaveformRange_Click"/>
+                        </MenuItem>
                         <Separator/>
                         <MenuItem x:Name="ThemeMenuItem" Header="モード">
                             <MenuItem x:Name="ThemeLightMenuItem" Header="ライト" Tag="Light" IsCheckable="True" Click="ThemeMenuItem_Click"/>
@@ -158,7 +164,8 @@
                 <Border x:Name="WaveformContainer" Grid.Column="1"
                         Background="{DynamicResource WaveformBackgroundBrush}" CornerRadius="2">
                     <Grid>
-                        <Canvas x:Name="WaveformCanvas" Background="Transparent" ClipToBounds="True"
+                <Canvas x:Name="WaveformCanvas" Background="Transparent" ClipToBounds="True"
+                                PreviewMouseWheel="WaveformCanvas_PreviewMouseWheel"
                                 PreviewMouseLeftButtonDown="WaveformCanvas_PreviewMouseLeftButtonDown"
                                 PreviewMouseMove="WaveformCanvas_PreviewMouseMove"
                                 PreviewMouseLeftButtonUp="WaveformCanvas_PreviewMouseLeftButtonUp"
@@ -167,12 +174,15 @@
                                    Foreground="{DynamicResource TextDimBrush}" FontSize="11" Visibility="Collapsed" IsHitTestVisible="False"/>
                     </Grid>
                 </Border>
+                <TextBlock x:Name="WaveformRangeText" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-13,0,0"
+                           Foreground="{DynamicResource TextDimBrush}" FontSize="10" Cursor="Hand"
+                           MouseLeftButtonUp="WaveformRangeText_MouseLeftButtonUp"/>
                 <TextBlock Grid.Column="2" Text="00:00" Foreground="Transparent"
                            FontFamily="Consolas" FontSize="10" Margin="6,0,0,0"/>
             </Grid>
 
             <!-- ============ トランスポートコントロール ============ -->
-            <Grid Grid.Row="3" Margin="8,2,8,0">
+            <Grid Grid.Row="5" Margin="8,2,8,2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -208,24 +218,37 @@
             </Grid>
 
             <!-- ============ 時間表示 / 再生バー(下端に固定) ============ -->
-            <Grid Grid.Row="5" Margin="8,0,8,2">
+            <Grid Grid.Row="3" Margin="8,2,8,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition x:Name="MinimapRow" Height="18"/>
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock x:Name="CurrentTimeText" Grid.Column="0" Text="00:00" Foreground="{DynamicResource TextDimBrush}"
+                <TextBlock x:Name="CurrentTimeText" Grid.Row="0" Grid.Column="0" Text="00:00" Foreground="{DynamicResource TextDimBrush}"
                            FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="0,0,6,0"/>
 
-                <Slider x:Name="SeekBar" Grid.Column="1" Minimum="0" Maximum="100" Value="0"
+                <Slider x:Name="SeekBar" Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="100" Value="0"
                         VerticalAlignment="Center"
                         PreviewMouseLeftButtonDown="SeekBar_PreviewMouseLeftButtonDown"
                         PreviewMouseMove="SeekBar_PreviewMouseMove"
                         PreviewMouseLeftButtonUp="SeekBar_PreviewMouseLeftButtonUp"/>
 
-                <TextBlock x:Name="TotalTimeText" Grid.Column="2" Text="00:00" Foreground="{DynamicResource TextDimBrush}"
+                <TextBlock x:Name="TotalTimeText" Grid.Row="0" Grid.Column="2" Text="00:00" Foreground="{DynamicResource TextDimBrush}"
                            FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
+
+                <Border x:Name="MinimapContainer" Grid.Row="1" Grid.Column="1" Margin="0,2,0,0"
+                        Background="#30343A" CornerRadius="2" ClipToBounds="True">
+                    <Canvas x:Name="MinimapCanvas" Background="Transparent" ClipToBounds="True"
+                            PreviewMouseLeftButtonDown="MinimapCanvas_PreviewMouseLeftButtonDown"
+                            PreviewMouseMove="MinimapCanvas_PreviewMouseMove"
+                            PreviewMouseLeftButtonUp="MinimapCanvas_PreviewMouseLeftButtonUp"
+                            SizeChanged="MinimapCanvas_SizeChanged"/>
+                </Border>
             </Grid>
         </Grid>
     </Border>

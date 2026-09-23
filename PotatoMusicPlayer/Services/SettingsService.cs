@@ -44,8 +44,10 @@ namespace PotatoMusicPlayer.Services
                 {
                     string json = File.ReadAllText(_settingsFilePath);
                     var settings = JsonConvert.DeserializeObject<AppSettings>(json);
-                    
+
                     settings?.EnsureDefaultHotKeys();
+                    if (settings != null && settings.WaveformZoom == null)
+                        settings.WaveformZoom = new WaveformZoomSettings();
                     
                     return settings ?? CreateDefaultSettings();
                 }
@@ -80,6 +82,8 @@ namespace PotatoMusicPlayer.Services
         /// </summary>
         public AppSettings GetSettings()
         {
+            if (_currentSettings.WaveformZoom == null)
+                _currentSettings.WaveformZoom = new WaveformZoomSettings();
             return _currentSettings;
         }
 

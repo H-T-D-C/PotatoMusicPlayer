@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Documents;
 using PotatoMusicPlayer.Services;
 using PotatoMusicPlayer.Models;
 using Newtonsoft.Json;
@@ -12,10 +15,17 @@ namespace PotatoMusicPlayer.Views
         private readonly LanguageService _languageService;
         private AppSettings _editableSettings;
         private HotKeyBinding _capturingBinding;
+        private readonly Dictionary<System.Windows.Controls.Control, string> _appliedValues = new();
+        private readonly Dictionary<System.Windows.Controls.Control, PendingSettingAdorner> _pendingAdorners = new();
 
         public SettingsWindow(SettingsService settingsService)
         {
+            // XAMLとテーマリソースの読み込み完了前に既定の白背景が表示されないよう、
+            // 現在のテーマに合う背景を先に設定する。描画後はスタイルの動的リソースへ戻す。
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(
+                ThemeService.IsLightMode ? "#F3F3F3" : "#1E1E1E"));
             InitializeComponent();
+            ContentRendered += SettingsWindow_ContentRendered;
             _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
 
             // Deep copy settings to editable instance
@@ -36,27 +46,52 @@ namespace PotatoMusicPlayer.Views
             MaxVolumeText.Text = ((int)Math.Round(_editableSettings.MaxVolumeMultiplier * 100)).ToString();
             UpdateHotKeyDisplayNames();
             PreviewKeyDown += SettingsWindow_PreviewKeyDown;
+            PreviewMouseWheel += SettingsWindow_PreviewMouseWheel;
 
             // ShowWaveform
             ShowWaveformCheck.IsChecked = _editableSettings.ShowWaveform;
+            var waveformZoom = _editableSettings.WaveformZoom ?? new WaveformZoomSettings();
+            _editableSettings.WaveformZoom = waveformZoom;
+            ShowMinimapCheck.IsChecked = waveformZoom.ShowMinimap;
+            CursorModeComboBox.SelectedIndex = waveformZoom.CursorMode == CursorDisplayMode.LeftScroll ? 1 : 0;
+            MinZoomLevelText.Text = waveformZoom.MinZoomLevel.ToString("0.##");
+            ZoomFactorText.Text = waveformZoom.ZoomFactor.ToString("0.##");
+            WaveformScrollStepText.Text = waveformZoom.ScrollStepSize.ToString("0.##");
+            MinimapHeightText.Text = waveformZoom.MinimapHeight.ToString();
+            HorizontalDetailText.Text = waveformZoom.HorizontalDetail.ToString();
+            VerticalDetailText.Text = waveformZoom.VerticalDetail.ToString();
 
             LanguageComboBox.SelectedIndex = _editableSettings.Language == PotatoMusicPlayer.Models.Language.Japanese ? 0 : 1;
             ThemeComboBox.SelectedIndex = (int)_editableSettings.Theme;
             RememberLastVolumeCheck.IsChecked = _editableSettings.RememberLastVolume;
             RememberLastSpeedCheck.IsChecked = _editableSettings.RememberLastPlaybackSpeed;
             RememberLastLoopCheck.IsChecked = _editableSettings.RememberLastLoopMode;
+            RememberWaveformZoomCheck.IsChecked = _editableSettings.RememberWaveformZoom;
+            DefaultWaveformZoomValueText.Text = _editableSettings.DefaultWaveformZoomValue.ToString("0.##");
+            DefaultWaveformZoomUnitComboBox.SelectedIndex = _editableSettings.DefaultWaveformZoomUnit == WaveformZoomUnit.Seconds ? 1 : 0;
+            TrackTransitionDelayText.Text = _editableSettings.TrackTransitionDelaySeconds.ToString("0.##");
 
             // default selection
             CategoryList.SelectedIndex = 0; // select "一般" by default
+            Loaded += (_, _) => CaptureAppliedSettingValues();
+        }
+
+        private void SettingsWindow_ContentRendered(object sender, EventArgs e)
+        {
+            ContentRendered -= SettingsWindow_ContentRendered;
+            ClearValue(BackgroundProperty);
+            Opacity = 1;
         }
 
         private bool ApplyCurrentSettings()
         {
             // Apply edited values to the original settings instance and save
             _editableSettings.ShowWaveform = ShowWaveformCheck.IsChecked == true;
+            _editableSettings.WaveformZoom.ShowMinimap = ShowMinimapCheck.IsChecked == true;
             _editableSettings.RememberLastVolume = RememberLastVolumeCheck.IsChecked == true;
             _editableSettings.RememberLastPlaybackSpeed = RememberLastSpeedCheck.IsChecked == true;
             _editableSettings.RememberLastLoopMode = RememberLastLoopCheck.IsChecked == true;
+            _editableSettings.RememberWaveformZoom = RememberWaveformZoomCheck.IsChecked == true;
             if (!TryReadNumericSettings() || HasDuplicateHotKeys())
                 return false;
             if (LanguageComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem languageItem &&
@@ -69,11 +104,100 @@ namespace PotatoMusicPlayer.Views
             {
                 _editableSettings.Theme = theme;
             }
+            if (CursorModeComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem cursorItem &&
+                Enum.TryParse(cursorItem.Tag?.ToString(), out CursorDisplayMode cursorMode))
+            {
+                _editableSettings.WaveformZoom.CursorMode = cursorMode;
+            }
+            if (DefaultWaveformZoomUnitComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem zoomUnitItem &&
+                Enum.TryParse(zoomUnitItem.Tag?.ToString(), out WaveformZoomUnit zoomUnit))
+            {
+                _editableSettings.DefaultWaveformZoomUnit = zoomUnit;
+            }
             _settingsService.SaveSettings(_editableSettings);
             _languageService.Load(_editableSettings.Language);
             ThemeService.Apply(_editableSettings.Theme);
             ApplyLanguage();
+            CaptureAppliedSettingValues();
             return true;
+        }
+
+        private void CaptureAppliedSettingValues()
+        {
+            foreach (var control in GetSettingControls(this))
+            {
+                if (!_appliedValues.ContainsKey(control))
+                {
+                    if (control is System.Windows.Controls.TextBox textBox)
+                        textBox.TextChanged += SettingControlChanged;
+                    else if (control is System.Windows.Controls.ComboBox comboBox)
+                        comboBox.SelectionChanged += SettingControlChanged;
+                    else if (control is System.Windows.Controls.CheckBox checkBox)
+                    {
+                        checkBox.Checked += SettingControlChanged;
+                        checkBox.Unchecked += SettingControlChanged;
+                    }
+                }
+
+                _appliedValues[control] = GetSettingValue(control);
+                RemovePendingAdorner(control);
+            }
+        }
+
+        private static IEnumerable<System.Windows.Controls.Control> GetSettingControls(DependencyObject parent)
+        {
+            int children = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < children; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is System.Windows.Controls.TextBox || child is System.Windows.Controls.ComboBox || child is System.Windows.Controls.CheckBox)
+                    yield return (System.Windows.Controls.Control)child;
+
+                foreach (var descendant in GetSettingControls(child))
+                    yield return descendant;
+            }
+        }
+
+        private static string GetSettingValue(System.Windows.Controls.Control control)
+        {
+            return control switch
+            {
+                System.Windows.Controls.TextBox textBox => textBox.Text ?? string.Empty,
+                System.Windows.Controls.ComboBox comboBox => comboBox.SelectedIndex.ToString(),
+                System.Windows.Controls.CheckBox checkBox => checkBox.IsChecked == true ? "true" : "false",
+                _ => string.Empty
+            };
+        }
+
+        private void SettingControlChanged(object sender, RoutedEventArgs e)
+        {
+            if (sender is not System.Windows.Controls.Control control || !_appliedValues.TryGetValue(control, out string applied))
+                return;
+
+            if (GetSettingValue(control) == applied)
+                RemovePendingAdorner(control);
+            else
+                AddPendingAdorner(control);
+        }
+
+        private void AddPendingAdorner(System.Windows.Controls.Control control)
+        {
+            if (_pendingAdorners.ContainsKey(control))
+                return;
+
+            var layer = AdornerLayer.GetAdornerLayer(control);
+            if (layer == null)
+                return;
+
+            var adorner = new PendingSettingAdorner(control);
+            layer.Add(adorner);
+            _pendingAdorners[control] = adorner;
+        }
+
+        private void RemovePendingAdorner(System.Windows.Controls.Control control)
+        {
+            if (_pendingAdorners.Remove(control, out var adorner))
+                AdornerLayer.GetAdornerLayer(control)?.Remove(adorner);
         }
 
         private bool TryReadNumericSettings()
@@ -87,6 +211,14 @@ namespace PotatoMusicPlayer.Views
                 !int.TryParse(MaxRecentFilesText.Text, out int maxRecentFiles) || maxRecentFiles < 1 || maxRecentFiles > 1000 ||
                 !int.TryParse(DefaultVolumeText.Text, out int defaultVolume) || defaultVolume < 0 || defaultVolume > 1000 ||
                 !int.TryParse(MaxVolumeText.Text, out int maxVolume) || maxVolume < 100 || maxVolume > 1000 ||
+                !float.TryParse(MinZoomLevelText.Text, out float minZoomLevel) || minZoomLevel < 0.1f || minZoomLevel > 60 ||
+                !float.TryParse(ZoomFactorText.Text, out float zoomFactor) || zoomFactor < 1.1f || zoomFactor > 10 ||
+                !float.TryParse(WaveformScrollStepText.Text, out float waveformScrollStep) || waveformScrollStep <= 0 || waveformScrollStep > 3600 ||
+                !int.TryParse(MinimapHeightText.Text, out int minimapHeight) || minimapHeight < 8 || minimapHeight > 64 ||
+                !int.TryParse(HorizontalDetailText.Text, out int horizontalDetail) || horizontalDetail < 0 || horizontalDetail > 100 ||
+                !int.TryParse(VerticalDetailText.Text, out int verticalDetail) || verticalDetail < 0 || verticalDetail > 100 ||
+                !double.TryParse(DefaultWaveformZoomValueText.Text, out double defaultWaveformZoomValue) || defaultWaveformZoomValue <= 0 || defaultWaveformZoomValue > 100000 ||
+                !double.TryParse(TrackTransitionDelayText.Text, out double trackTransitionDelay) || trackTransitionDelay < 0 || trackTransitionDelay > 60 ||
                 defaultVolume > maxVolume)
             {
                 MessageBox.Show("数値設定を確認してください。\n入力された値が範囲外であるか、形式が正しくありません。", "設定", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -102,6 +234,14 @@ namespace PotatoMusicPlayer.Views
             _editableSettings.MaxRecentFiles = maxRecentFiles;
             _editableSettings.DefaultVolume = defaultVolume / 100.0f;
             _editableSettings.MaxVolumeMultiplier = maxVolume / 100.0f;
+            _editableSettings.WaveformZoom.MinZoomLevel = minZoomLevel;
+            _editableSettings.WaveformZoom.ZoomFactor = zoomFactor;
+            _editableSettings.WaveformZoom.ScrollStepSize = waveformScrollStep;
+            _editableSettings.WaveformZoom.MinimapHeight = minimapHeight;
+            _editableSettings.WaveformZoom.HorizontalDetail = horizontalDetail;
+            _editableSettings.WaveformZoom.VerticalDetail = verticalDetail;
+            _editableSettings.DefaultWaveformZoomValue = defaultWaveformZoomValue;
+            _editableSettings.TrackTransitionDelaySeconds = trackTransitionDelay;
             UpdateHotKeyDisplayNames();
             return true;
         }
@@ -114,7 +254,10 @@ namespace PotatoMusicPlayer.Views
                 {
                     var left = _editableSettings.HotKeyBindings[i];
                     var right = _editableSettings.HotKeyBindings[j];
-                    if (left.Key != System.Windows.Input.Key.None && left.Key == right.Key && left.Modifiers == right.Modifiers)
+                    bool sameInput = left.InputType == right.InputType &&
+                        (left.InputType != HotKeyInputType.Key || left.Key == right.Key);
+                    if (sameInput && left.Modifiers == right.Modifiers &&
+                        (left.InputType != HotKeyInputType.Key || left.Key != System.Windows.Input.Key.None))
                     {
                         MessageBox.Show($"ホットキーが重複しています: {left}", "設定", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return true;
@@ -145,6 +288,7 @@ namespace PotatoMusicPlayer.Views
                 {
                     binding.Key = defaultBinding.Key;
                     binding.Modifiers = defaultBinding.Modifiers;
+                    binding.InputType = defaultBinding.InputType;
                 }
                 UpdateHotKeyDisplayNames();
             }
@@ -156,6 +300,7 @@ namespace PotatoMusicPlayer.Views
             {
                 binding.Key = System.Windows.Input.Key.None;
                 binding.Modifiers = System.Windows.Input.ModifierKeys.None;
+                binding.InputType = HotKeyInputType.Key;
                 UpdateHotKeyDisplayNames();
             }
         }
@@ -182,6 +327,8 @@ namespace PotatoMusicPlayer.Views
                     case HotKeyAction.SpeedReset: binding.DisplayName = string.Format(_languageService.Get("Hotkey.SpeedReset"), _editableSettings.SpeedResetPercent); break;
                     case HotKeyAction.ToggleLoopMode: binding.DisplayName = _languageService.Get("Hotkey.ToggleLoop"); break;
                     case HotKeyAction.ToggleWaveform: binding.DisplayName = _languageService.Get("Hotkey.ToggleWaveform"); break;
+                    case HotKeyAction.WaveformZoomIn: binding.DisplayName = _languageService.Get("Hotkey.WaveformZoomIn"); break;
+                    case HotKeyAction.WaveformZoomOut: binding.DisplayName = _languageService.Get("Hotkey.WaveformZoomOut"); break;
                 }
             }
             HotKeyItemsControl?.Items.Refresh();
@@ -208,10 +355,45 @@ namespace PotatoMusicPlayer.Views
 
             _capturingBinding.Key = e.Key == System.Windows.Input.Key.System ? e.SystemKey : e.Key;
             _capturingBinding.Modifiers = System.Windows.Input.Keyboard.Modifiers;
+            _capturingBinding.InputType = HotKeyInputType.Key;
             _capturingBinding.DisplayName = _capturingBinding.DisplayName ?? _capturingBinding.Action.ToString();
             _capturingBinding = null;
             HotKeyItemsControl.Items.Refresh();
             e.Handled = true;
+        }
+
+        private void SettingsWindow_PreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        {
+            if (_capturingBinding == null)
+                return;
+
+            _capturingBinding.InputType = e.Delta > 0
+                ? HotKeyInputType.MouseWheelUp
+                : HotKeyInputType.MouseWheelDown;
+            _capturingBinding.Key = System.Windows.Input.Key.None;
+            _capturingBinding.Modifiers = System.Windows.Input.Keyboard.Modifiers;
+            _capturingBinding = null;
+            HotKeyItemsControl.Items.Refresh();
+            e.Handled = true;
+        }
+
+        private void ResetWaveformDetailButton_Click(object sender, RoutedEventArgs e)
+        {
+            var defaults = new WaveformZoomSettings();
+            ShowWaveformCheck.IsChecked = true;
+            CursorModeComboBox.SelectedIndex = 0;
+            MinZoomLevelText.Text = defaults.MinZoomLevel.ToString("0.##");
+            ZoomFactorText.Text = defaults.ZoomFactor.ToString("0.##");
+            WaveformScrollStepText.Text = defaults.ScrollStepSize.ToString("0.##");
+            HorizontalDetailText.Text = defaults.HorizontalDetail.ToString();
+            VerticalDetailText.Text = defaults.VerticalDetail.ToString();
+        }
+
+        private void ResetMinimapDetailButton_Click(object sender, RoutedEventArgs e)
+        {
+            var defaults = new WaveformZoomSettings();
+            ShowMinimapCheck.IsChecked = defaults.ShowMinimap;
+            MinimapHeightText.Text = defaults.MinimapHeight.ToString();
         }
 
         private void ApplyLanguage()
@@ -228,6 +410,8 @@ namespace PotatoMusicPlayer.Views
             RememberLastVolumeCheck.Content = _languageService.Get("Settings.RememberLastVolume");
             RememberLastSpeedCheck.Content = _languageService.Get("Settings.RememberLastSpeed");
             RememberLastLoopCheck.Content = _languageService.Get("Settings.RememberLastLoop");
+            RememberWaveformZoomCheck.Content = _languageService.Get("Settings.RememberWaveformZoom");
+            DefaultWaveformZoomLabelText.Text = _languageService.Get("Settings.DefaultWaveformZoom");
             LightThemeItem.Content = _languageService.Get("Theme.Light");
             DarkThemeItem.Content = _languageService.Get("Theme.Dark");
             SystemThemeItem.Content = _languageService.Get("Theme.System");
@@ -236,6 +420,16 @@ namespace PotatoMusicPlayer.Views
             DisplayTitleText.Text = _languageService.Get("Settings.DisplayTitle");
             DisplayHintText.Text = _languageService.Get("Settings.DisplayHint");
             ShowWaveformLabelText.Text = _languageService.Get("Settings.ShowWaveform");
+            ShowMinimapLabelText.Text = _languageService.Get("Settings.ShowMinimap");
+            CursorModeLabelText.Text = _languageService.Get("Settings.CursorMode");
+            CenterFixedCursorItem.Content = _languageService.Get("Settings.CursorMode.CenterFixed");
+            LeftScrollCursorItem.Content = _languageService.Get("Settings.CursorMode.LeftScroll");
+            MinZoomLevelLabelText.Text = _languageService.Get("Settings.MinZoomLevel");
+            ZoomFactorLabelText.Text = _languageService.Get("Settings.ZoomFactor");
+            WaveformScrollStepLabelText.Text = _languageService.Get("Settings.WaveformScrollStep");
+            MinimapHeightLabelText.Text = _languageService.Get("Settings.MinimapHeight");
+            HorizontalDetailLabelText.Text = _languageService.Get("Settings.HorizontalDetail");
+            VerticalDetailLabelText.Text = _languageService.Get("Settings.VerticalDetail");
             HotkeysTitleText.Text = _languageService.Get("Settings.HotkeysTitle");
             HotkeysHintText.Text = _languageService.Get("Settings.HotkeysHint");
             SkipDurationLabelText.Text = _languageService.Get("Settings.SkipDuration");
@@ -285,6 +479,23 @@ namespace PotatoMusicPlayer.Views
             HotkeysPanel.Visibility = tag == "Hotkeys" ? Visibility.Visible : Visibility.Collapsed;
             NumericPanel.Visibility = tag == "Numeric" ? Visibility.Visible : Visibility.Collapsed;
             DisplayPanel.Visibility = tag == "Display" ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private sealed class PendingSettingAdorner : Adorner
+        {
+            private static readonly Typeface MarkerTypeface = new("Segoe UI");
+
+            public PendingSettingAdorner(UIElement adornedElement) : base(adornedElement)
+            {
+                IsHitTestVisible = false;
+            }
+
+            protected override void OnRender(DrawingContext drawingContext)
+            {
+                var marker = new FormattedText("*", System.Globalization.CultureInfo.CurrentUICulture,
+                    FlowDirection.LeftToRight, MarkerTypeface, 14, Brushes.Gold, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+                drawingContext.DrawText(marker, new Point(-7, -10));
+            }
         }
     }
 }
