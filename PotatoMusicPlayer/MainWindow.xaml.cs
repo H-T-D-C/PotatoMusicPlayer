@@ -44,7 +44,18 @@ namespace PotatoMusicPlayer
             // Recent files メニューを初期化
             UpdateRecentFilesMenu();
 
+            Loaded += MainWindow_Loaded;
             Closing += MainWindow_Closing;
+        }
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            string startupFile = App.StartupFilePath;
+            if (string.IsNullOrEmpty(startupFile) || !FileService.FileExists(startupFile))
+                return;
+
+            await _viewModel.LoadAndPlayFileAsync(startupFile);
+            UpdateRecentFilesMenu();
         }
 
         private void ThemeService_ThemeChanged(object sender, EventArgs e)
@@ -65,6 +76,7 @@ namespace PotatoMusicPlayer
             AlwaysOnTopMenuItem.IsChecked = settings.IsAlwaysOnTop;
             ShowWaveformMenuItem.IsChecked = settings.ShowWaveform;
             WaveformContainer.Visibility = settings.ShowWaveform ? Visibility.Visible : Visibility.Collapsed;
+            VolumeSlider.Maximum = Math.Max(100, settings.MaxVolumeMultiplier * 100.0);
 
             if (settings.IsWindowSizeFixed)
             {
@@ -72,7 +84,8 @@ namespace PotatoMusicPlayer
                 FixWindowSizeMenuItem.IsChecked = true;
             }
 
-            VolumeSlider.Value = settings.DefaultVolume * 100;
+            VolumeSlider.Value = Math.Clamp(settings.DefaultVolume * 100, VolumeSlider.Minimum, VolumeSlider.Maximum);
+            UpdateThemeMenuSelection(settings.Theme);
         }
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -80,6 +93,12 @@ namespace PotatoMusicPlayer
             ThemeService.ThemeChanged -= ThemeService_ThemeChanged;
             // ウィンドウの状態を保存
             var settings = _viewModel.Settings;
+            if (settings.RememberLastVolume)
+                settings.DefaultVolume = (float)Math.Clamp(VolumeSlider.Value / 100.0, 0.0, settings.MaxVolumeMultiplier);
+            if (settings.RememberLastPlaybackSpeed && _viewModel.PlaybackState != null)
+                settings.DefaultPlaybackSpeed = Math.Clamp(_viewModel.PlaybackState.PlaybackSpeed, 0.25f, 4.0f);
+            if (settings.RememberLastLoopMode && _viewModel.PlaybackState != null)
+                settings.DefaultLoopMode = _viewModel.PlaybackState.LoopMode;
             settings.WindowWidth = Width;
             settings.WindowHeight = Height;
             settings.WindowLeft = Left;
@@ -119,6 +138,8 @@ namespace PotatoMusicPlayer
                 {
                     _languageService.Load(_viewModel.Settings.Language);
                     ApplyLanguage();
+                    ApplyAudioSettingsToUi();
+                    UpdateThemeMenuSelection(_viewModel.Settings.Theme);
                 }
             });
         }
@@ -197,7 +218,6 @@ namespace PotatoMusicPlayer
             Title = _languageService.Get("Main.Title");
             FileMenuItem.Header = _languageService.Get("Main.File");
             PlaybackMenuItem.Header = _languageService.Get("Main.Playback");
-            EditMenuItem.Header = _languageService.Get("Main.Edit");
             ViewMenuItem.Header = _languageService.Get("Main.View");
             OtherMenuItem.Header = _languageService.Get("Main.Other");
             VolumeIcon.ToolTip = _languageService.Get("Main.VolumeTooltip");
@@ -210,6 +230,7 @@ namespace PotatoMusicPlayer
             FileOpenTerminalMenuItem.Header = _languageService.Get("Menu.File.OpenTerminal");
             RecentFilesMenuItem.Header = _languageService.Get("Menu.File.RecentFiles");
             FileExitMenuItem.Header = _languageService.Get("Menu.File.Exit");
+            FileSettingsMenuItem.Header = _languageService.Get("Menu.Edit.Settings");
 
             // 再生メニュー
             PlaybackPlayPauseMenuItem.Header = _languageService.Get("Menu.Playback.PlayPause");
@@ -221,14 +242,15 @@ namespace PotatoMusicPlayer
             PlaybackSkipForwardMenuItem.Header = _languageService.Get("Menu.Playback.SkipForward");
             PlaybackSkipBackwardMenuItem.Header = _languageService.Get("Menu.Playback.SkipBackward");
 
-            // 編集メニュー
-            EditSettingsMenuItem.Header = _languageService.Get("Menu.Edit.Settings");
-
             // 表示メニュー
             AlwaysOnTopMenuItem.Header = _languageService.Get("Menu.View.AlwaysOnTop");
             FixWindowSizeMenuItem.Header = _languageService.Get("Menu.View.FixWindowSize");
             ShowWaveformMenuItem.Header = _languageService.Get("Menu.View.ShowWaveform");
             ViewFullScreenMenuItem.Header = _languageService.Get("Menu.View.FullScreen");
+            ThemeMenuItem.Header = _languageService.Get("Menu.View.Theme");
+            ThemeLightMenuItem.Header = _languageService.Get("Theme.Light");
+            ThemeDarkMenuItem.Header = _languageService.Get("Theme.Dark");
+            ThemeSystemMenuItem.Header = _languageService.Get("Theme.System");
 
             // その他メニュー
             OtherAboutMenuItem.Header = _languageService.Get("Menu.Other.About");
@@ -325,6 +347,45 @@ namespace PotatoMusicPlayer
             WaveformContainer.Visibility = ShowWaveformMenuItem.IsChecked ? Visibility.Visible : Visibility.Collapsed;
             if (ShowWaveformMenuItem.IsChecked)
                 DrawWaveform();
+        }
+
+        private void ThemeMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem item || !Enum.TryParse(item.Tag?.ToString(), out ThemeMode mode))
+                return;
+
+            var settings = _viewModel.Settings;
+            settings.Theme = mode;
+            new SettingsService().SaveSettings(settings);
+            ThemeService.Apply(mode);
+            UpdateThemeMenuSelection(mode);
+        }
+
+        private void UpdateThemeMenuSelection(ThemeMode mode)
+        {
+            if (ThemeLightMenuItem == null)
+                return;
+
+            ThemeLightMenuItem.IsChecked = mode == ThemeMode.Light;
+            ThemeDarkMenuItem.IsChecked = mode == ThemeMode.Dark;
+            ThemeSystemMenuItem.IsChecked = mode == ThemeMode.System;
+        }
+
+        private void ApplyAudioSettingsToUi()
+        {
+            if (VolumeSlider == null || _viewModel == null)
+                return;
+
+            double maximum = Math.Max(100, _viewModel.Settings.MaxVolumeMultiplier * 100.0);
+            double previousValue = VolumeSlider.Value;
+            _isUpdatingVolumeFromCode = true;
+            VolumeSlider.Maximum = maximum;
+            VolumeSlider.Value = Math.Min(previousValue, maximum);
+            _isUpdatingVolumeFromCode = false;
+
+            if (previousValue > maximum)
+                _viewModel.SetVolume(maximum);
+            UpdateVolumeIcon(VolumeSlider.Value);
         }
 
         private void FullScreen_Click(object sender, RoutedEventArgs e)
@@ -503,8 +564,7 @@ namespace PotatoMusicPlayer
         {
             _isDraggingSeekBar = false;
             SeekBar.ReleaseMouseCapture();
-            _viewModel.SetPosition(SeekBar.Value);
-            _viewModel.Play();
+            _viewModel.SeekAndPlay(SeekBar.Value);
         }
 
         private void UpdateSeekBarValueFromMouse(MouseEventArgs e)

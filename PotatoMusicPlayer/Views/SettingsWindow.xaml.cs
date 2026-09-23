@@ -31,37 +31,20 @@ namespace PotatoMusicPlayer.Views
             ScrollVolumeText.Text = _editableSettings.ScrollVolumeChangePercent.ToString();
             HotkeyVolumeText.Text = _editableSettings.VolumeChangePercent.ToString();
             SpeedResetText.Text = _editableSettings.SpeedResetPercent.ToString();
+            MaxRecentFilesText.Text = _editableSettings.MaxRecentFiles.ToString();
+            DefaultVolumeText.Text = ((int)Math.Round(_editableSettings.DefaultVolume * 100)).ToString();
+            MaxVolumeText.Text = ((int)Math.Round(_editableSettings.MaxVolumeMultiplier * 100)).ToString();
             UpdateHotKeyDisplayNames();
             PreviewKeyDown += SettingsWindow_PreviewKeyDown;
-
-            // Initialize UI controls
-            MaxVolumeSlider.Value = _editableSettings.MaxVolumeMultiplier * 100.0;
-            MaxVolumeText.Text = ((int)(MaxVolumeSlider.Value)).ToString();
-
-            MaxVolumeSlider.ValueChanged += (s, e) =>
-            {
-                MaxVolumeText.Text = ((int)MaxVolumeSlider.Value).ToString();
-            };
-
-            MaxVolumeText.LostFocus += (s, e) =>
-            {
-                if (int.TryParse(MaxVolumeText.Text, out var v))
-                {
-                    v = Math.Clamp(v, 100, 400);
-                    MaxVolumeSlider.Value = v;
-                    MaxVolumeText.Text = v.ToString();
-                }
-                else
-                {
-                    MaxVolumeText.Text = ((int)MaxVolumeSlider.Value).ToString();
-                }
-            };
 
             // ShowWaveform
             ShowWaveformCheck.IsChecked = _editableSettings.ShowWaveform;
 
             LanguageComboBox.SelectedIndex = _editableSettings.Language == PotatoMusicPlayer.Models.Language.Japanese ? 0 : 1;
             ThemeComboBox.SelectedIndex = (int)_editableSettings.Theme;
+            RememberLastVolumeCheck.IsChecked = _editableSettings.RememberLastVolume;
+            RememberLastSpeedCheck.IsChecked = _editableSettings.RememberLastPlaybackSpeed;
+            RememberLastLoopCheck.IsChecked = _editableSettings.RememberLastLoopMode;
 
             // default selection
             CategoryList.SelectedIndex = 0; // select "一般" by default
@@ -70,8 +53,10 @@ namespace PotatoMusicPlayer.Views
         private bool ApplyCurrentSettings()
         {
             // Apply edited values to the original settings instance and save
-            _editableSettings.MaxVolumeMultiplier = (float)(MaxVolumeSlider.Value / 100.0);
             _editableSettings.ShowWaveform = ShowWaveformCheck.IsChecked == true;
+            _editableSettings.RememberLastVolume = RememberLastVolumeCheck.IsChecked == true;
+            _editableSettings.RememberLastPlaybackSpeed = RememberLastSpeedCheck.IsChecked == true;
+            _editableSettings.RememberLastLoopMode = RememberLastLoopCheck.IsChecked == true;
             if (!TryReadNumericSettings() || HasDuplicateHotKeys())
                 return false;
             if (LanguageComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem languageItem &&
@@ -98,9 +83,13 @@ namespace PotatoMusicPlayer.Views
                 !int.TryParse(ScrollVolumeText.Text, out int scrollVolume) || scrollVolume < 1 || scrollVolume > 100 ||
                 !int.TryParse(HotkeyVolumeText.Text, out int volumeStep) || volumeStep < 1 || volumeStep > 100 ||
                 !int.TryParse(SpeedStepText.Text, out int speedStep) || speedStep < 1 || speedStep > 100 ||
-                !int.TryParse(SpeedResetText.Text, out int speedReset) || speedReset < 1 || speedReset > 400)
+                !int.TryParse(SpeedResetText.Text, out int speedReset) || speedReset < 1 || speedReset > 1000 ||
+                !int.TryParse(MaxRecentFilesText.Text, out int maxRecentFiles) || maxRecentFiles < 1 || maxRecentFiles > 1000 ||
+                !int.TryParse(DefaultVolumeText.Text, out int defaultVolume) || defaultVolume < 0 || defaultVolume > 1000 ||
+                !int.TryParse(MaxVolumeText.Text, out int maxVolume) || maxVolume < 100 || maxVolume > 1000 ||
+                defaultVolume > maxVolume)
             {
-                MessageBox.Show("数値設定を確認してください。", "設定", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("数値設定を確認してください。\n入力された値が範囲外であるか、形式が正しくありません。", "設定", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
@@ -110,6 +99,9 @@ namespace PotatoMusicPlayer.Views
             _editableSettings.VolumeChangePercent = volumeStep;
             _editableSettings.SpeedChangePercent = speedStep;
             _editableSettings.SpeedResetPercent = speedReset;
+            _editableSettings.MaxRecentFiles = maxRecentFiles;
+            _editableSettings.DefaultVolume = defaultVolume / 100.0f;
+            _editableSettings.MaxVolumeMultiplier = maxVolume / 100.0f;
             UpdateHotKeyDisplayNames();
             return true;
         }
@@ -174,13 +166,22 @@ namespace PotatoMusicPlayer.Views
             {
                 switch (binding.Action)
                 {
-                    case HotKeyAction.SkipBackward5s: binding.DisplayName = $"{_editableSettings.SkipDurationSeconds}秒戻る"; break;
-                    case HotKeyAction.SkipForward5s: binding.DisplayName = $"{_editableSettings.SkipDurationSeconds}秒進む"; break;
-                    case HotKeyAction.StepBackward01s: binding.DisplayName = $"{_editableSettings.StepDurationSeconds:0.##}秒戻る"; break;
-                    case HotKeyAction.StepForward01s: binding.DisplayName = $"{_editableSettings.StepDurationSeconds:0.##}秒進む"; break;
-                    case HotKeyAction.SpeedDecrease: binding.DisplayName = $"速度低下({_editableSettings.SpeedChangePercent}%)"; break;
-                    case HotKeyAction.SpeedIncrease: binding.DisplayName = $"速度上昇({_editableSettings.SpeedChangePercent}%)"; break;
-                    case HotKeyAction.SpeedReset: binding.DisplayName = $"速度リセット({_editableSettings.SpeedResetPercent}%)"; break;
+                    case HotKeyAction.PlayPause: binding.DisplayName = _languageService.Get("Hotkey.PlayPause"); break;
+                    case HotKeyAction.Stop: binding.DisplayName = _languageService.Get("Hotkey.Stop"); break;
+                    case HotKeyAction.SkipBackward5s: binding.DisplayName = string.Format(_languageService.Get("Hotkey.SkipBackward"), _editableSettings.SkipDurationSeconds); break;
+                    case HotKeyAction.SkipForward5s: binding.DisplayName = string.Format(_languageService.Get("Hotkey.SkipForward"), _editableSettings.SkipDurationSeconds); break;
+                    case HotKeyAction.VolumeUp: binding.DisplayName = _languageService.Get("Hotkey.VolumeUp"); break;
+                    case HotKeyAction.VolumeDown: binding.DisplayName = _languageService.Get("Hotkey.VolumeDown"); break;
+                    case HotKeyAction.Mute: binding.DisplayName = _languageService.Get("Hotkey.Mute"); break;
+                    case HotKeyAction.StepBackward01s: binding.DisplayName = string.Format(_languageService.Get("Hotkey.StepBackward"), _editableSettings.StepDurationSeconds.ToString("0.##")); break;
+                    case HotKeyAction.StepForward01s: binding.DisplayName = string.Format(_languageService.Get("Hotkey.StepForward"), _editableSettings.StepDurationSeconds.ToString("0.##")); break;
+                    case HotKeyAction.GoToStart: binding.DisplayName = _languageService.Get("Hotkey.GoToStart"); break;
+                    case HotKeyAction.GoToEnd: binding.DisplayName = _languageService.Get("Hotkey.GoToEnd"); break;
+                    case HotKeyAction.SpeedDecrease: binding.DisplayName = string.Format(_languageService.Get("Hotkey.SpeedDecrease"), _editableSettings.SpeedChangePercent); break;
+                    case HotKeyAction.SpeedIncrease: binding.DisplayName = string.Format(_languageService.Get("Hotkey.SpeedIncrease"), _editableSettings.SpeedChangePercent); break;
+                    case HotKeyAction.SpeedReset: binding.DisplayName = string.Format(_languageService.Get("Hotkey.SpeedReset"), _editableSettings.SpeedResetPercent); break;
+                    case HotKeyAction.ToggleLoopMode: binding.DisplayName = _languageService.Get("Hotkey.ToggleLoop"); break;
+                    case HotKeyAction.ToggleWaveform: binding.DisplayName = _languageService.Get("Hotkey.ToggleWaveform"); break;
                 }
             }
             HotKeyItemsControl?.Items.Refresh();
@@ -217,20 +218,23 @@ namespace PotatoMusicPlayer.Views
         {
             Title = _languageService.Get("Settings.Title");
             GeneralCategoryItem.Content = _languageService.Get("Settings.General");
-            VolumeCategoryItem.Content = _languageService.Get("Settings.Volume");
             DisplayCategoryItem.Content = _languageService.Get("Settings.Display");
             HotkeysCategoryItem.Content = _languageService.Get("Settings.Hotkeys");
             NumericCategoryItem.Content = _languageService.Get("Settings.Numeric");
             GeneralTitleText.Text = _languageService.Get("Settings.GeneralTitle");
+            GeneralHintText.Text = _languageService.Get("Settings.GeneralHint");
             LanguageLabelText.Text = _languageService.Get("Settings.Language");
             ThemeLabelText.Text = _languageService.Get("Settings.Theme");
+            RememberLastVolumeCheck.Content = _languageService.Get("Settings.RememberLastVolume");
+            RememberLastSpeedCheck.Content = _languageService.Get("Settings.RememberLastSpeed");
+            RememberLastLoopCheck.Content = _languageService.Get("Settings.RememberLastLoop");
             LightThemeItem.Content = _languageService.Get("Theme.Light");
             DarkThemeItem.Content = _languageService.Get("Theme.Dark");
             SystemThemeItem.Content = _languageService.Get("Theme.System");
-            VolumeTitleText.Text = _languageService.Get("Settings.VolumeTitle");
             MaxVolumeLabelText.Text = _languageService.Get("Settings.MaxVolume");
-            VolumeExampleText.Text = _languageService.Get("Settings.VolumeExample");
+            DefaultVolumeLabelText.Text = _languageService.Get("Settings.DefaultVolume");
             DisplayTitleText.Text = _languageService.Get("Settings.DisplayTitle");
+            DisplayHintText.Text = _languageService.Get("Settings.DisplayHint");
             ShowWaveformLabelText.Text = _languageService.Get("Settings.ShowWaveform");
             HotkeysTitleText.Text = _languageService.Get("Settings.HotkeysTitle");
             HotkeysHintText.Text = _languageService.Get("Settings.HotkeysHint");
@@ -240,12 +244,15 @@ namespace PotatoMusicPlayer.Views
             HotkeyVolumeLabelText.Text = _languageService.Get("Settings.VolumeStep");
             SpeedStepLabelText.Text = _languageService.Get("Settings.SpeedStep");
             SpeedResetLabelText.Text = _languageService.Get("Settings.SpeedReset");
+            MaxRecentFilesLabelText.Text = _languageService.Get("Settings.MaxRecentFiles");
             NumericTitleText.Text = _languageService.Get("Settings.NumericTitle");
+            NumericHintText.Text = _languageService.Get("Settings.NumericHint");
             JapaneseLanguageItem.Content = _languageService.Get("Language.Japanese");
             EnglishLanguageItem.Content = _languageService.Get("Language.EnglishUS");
             CancelButton.Content = _languageService.Get("Common.Cancel");
             ApplyButton.Content = _languageService.Get("Common.Apply");
             OkButton.Content = _languageService.Get("Common.OK");
+            UpdateHotKeyDisplayNames();
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
@@ -277,7 +284,6 @@ namespace PotatoMusicPlayer.Views
             GeneralPanel.Visibility = tag == "General" ? Visibility.Visible : Visibility.Collapsed;
             HotkeysPanel.Visibility = tag == "Hotkeys" ? Visibility.Visible : Visibility.Collapsed;
             NumericPanel.Visibility = tag == "Numeric" ? Visibility.Visible : Visibility.Collapsed;
-            VolumePanel.Visibility = tag == "Volume" ? Visibility.Visible : Visibility.Collapsed;
             DisplayPanel.Visibility = tag == "Display" ? Visibility.Visible : Visibility.Collapsed;
         }
     }

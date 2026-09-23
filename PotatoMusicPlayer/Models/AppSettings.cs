@@ -43,6 +43,8 @@ namespace PotatoMusicPlayer.Models
         public bool ResetPlaybackSpeedOnStartup { get; set; } = false;
         public bool RememberLastPlaybackSpeed { get; set; } = true;
         public bool RememberLastVolume { get; set; } = true;
+        public bool RememberLastLoopMode { get; set; } = true;
+        public LoopMode DefaultLoopMode { get; set; } = LoopMode.Off;
 
         // 波形表示設定
         public bool ShowWaveform { get; set; } = true;

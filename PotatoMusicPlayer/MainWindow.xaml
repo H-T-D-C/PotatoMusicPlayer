@@ -85,6 +85,7 @@
                         <Separator/>
                         <MenuItem x:Name="RecentFilesMenuItem" Header="最近使ったファイル"/>
                         <Separator/>
+                        <MenuItem x:Name="FileSettingsMenuItem" Header="設定..." Click="OpenSettings_Click"/>
                         <MenuItem x:Name="FileExitMenuItem" Header="終了" Click="Exit_Click"/>
                     </MenuItem>
                     <MenuItem x:Name="PlaybackMenuItem" Header="再生">
@@ -100,14 +101,16 @@
                         <MenuItem x:Name="PlaybackSkipForwardMenuItem" Header="5秒スキップ" Click="SkipForward_Click"/>
                         <MenuItem x:Name="PlaybackSkipBackwardMenuItem" Header="5秒戻る" Click="SkipBackward_Click"/>
                     </MenuItem>
-                    <MenuItem x:Name="EditMenuItem" Header="編集">
-                        <MenuItem x:Name="EditSettingsMenuItem" Header="設定..." Click="OpenSettings_Click"/>
-                    </MenuItem>
                     <MenuItem x:Name="ViewMenuItem" Header="表示">
                         <MenuItem x:Name="AlwaysOnTopMenuItem" Header="常に最前面" IsCheckable="True" Click="AlwaysOnTop_Click"/>
                         <MenuItem x:Name="FixWindowSizeMenuItem" Header="ウィンドウサイズ固定" IsCheckable="True" Click="FixWindowSize_Click"/>
                         <MenuItem x:Name="ShowWaveformMenuItem" Header="波形を表示" IsCheckable="True" IsChecked="True" Click="ShowWaveform_Click"/>
                         <Separator/>
+                        <MenuItem x:Name="ThemeMenuItem" Header="モード">
+                            <MenuItem x:Name="ThemeLightMenuItem" Header="ライト" Tag="Light" IsCheckable="True" Click="ThemeMenuItem_Click"/>
+                            <MenuItem x:Name="ThemeDarkMenuItem" Header="ダーク" Tag="Dark" IsCheckable="True" Click="ThemeMenuItem_Click"/>
+                            <MenuItem x:Name="ThemeSystemMenuItem" Header="システム" Tag="System" IsCheckable="True" Click="ThemeMenuItem_Click"/>
+                        </MenuItem>
                         <MenuItem x:Name="ViewFullScreenMenuItem" Header="全画面表示" Click="FullScreen_Click"/>
                     </MenuItem>
                     <MenuItem x:Name="OtherMenuItem" Header="その他">
@@ -129,9 +132,9 @@
 
                 <!-- 最小化・閉じるボタン -->
                 <StackPanel Grid.Column="3" Orientation="Horizontal">
-                    <Button Content="—" Width="32" Height="26" Background="Transparent" Foreground="{DynamicResource TextLightBrush}"
+                    <Button Content="—" Width="32" Height="26" Style="{StaticResource WindowControlButtonStyle}" Background="Transparent" Foreground="{DynamicResource TextLightBrush}"
                             BorderThickness="0" Click="Minimize_Click"/>
-                    <Button Content="✕" Width="32" Height="26" Background="Transparent" Foreground="{DynamicResource TextLightBrush}"
+                    <Button Content="✕" Width="32" Height="26" Style="{StaticResource CloseButtonStyle}" Background="Transparent" Foreground="{DynamicResource TextLightBrush}"
                             BorderThickness="0" Click="Close_Click"/>
                 </StackPanel>
             </Grid>
@@ -187,8 +190,8 @@
                 <!-- 中央: 速度・ループ表示 -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <TextBlock x:Name="SpeedText" Text="1.0x" Foreground="{DynamicResource TextDimBrush}" FontSize="10" Margin="4,0" VerticalAlignment="Center"/>
-                    <Button x:Name="LoopButton" Content="Loop: OFF" Background="Transparent" Foreground="{DynamicResource TextDimBrush}"
-                            BorderThickness="0" FontSize="10" Click="ToggleLoop_Click"/>
+                    <Button x:Name="LoopButton" Content="Loop: OFF" Style="{StaticResource SettingsInputButtonStyle}" Background="Transparent" Foreground="{DynamicResource TextDimBrush}"
+                            BorderBrush="Transparent" BorderThickness="1" FontSize="10" Padding="4,1" Click="ToggleLoop_Click"/>
                 </StackPanel>
 
                 <!-- 右: 音量 -->

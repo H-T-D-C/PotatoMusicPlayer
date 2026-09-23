@@ -27,6 +27,9 @@ namespace PotatoMusicPlayer.Services
             SetBrush("ControlBorderBrush", useLight ? "#A8A8A8" : "#666666");
             SetBrush("MenuHoverBrush", useLight ? "#D6DCE3" : "#3C3C3C");
             SetBrush("WaveformBackgroundBrush", useLight ? "#E1E1E1" : "#252525");
+            SetBrush("CloseHoverBrush", useLight ? "#E85B5B" : "#7A2020");
+            SetBrush("AccentBlueBrush", useLight ? "#2F6FB0" : "#4A90E2");
+            SetBrush("ApplyButtonBrush", useLight ? "#4B8F52" : "#3E7A43");
             ThemeChanged?.Invoke(null, EventArgs.Empty);
         }
 

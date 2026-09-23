@@ -20,6 +20,9 @@ namespace PotatoMusicPlayer.Services
         private readonly SynchronizationContext _syncContext;
         // ファイル未読み込み状態でも音量設定を保持する（再生開始時に適用される）
         private float _desiredVolume = 0.8f;
+        private float _desiredPlaybackSpeed = 1.0f;
+        private bool _positionSetAfterEnd;
+        private long? _pendingSeekPosition;
         private TimeSpan _lastDuration = TimeSpan.Zero;
 
         // イベント
@@ -87,11 +90,13 @@ namespace PotatoMusicPlayer.Services
                 {
                     _mediaPlayer = new MediaPlayer(_libVLC);
                     _mediaPlayer.EndReached += OnMediaEnded;
+                    _mediaPlayer.Playing += OnMediaPlaying;
                     _mediaPlayer.TimeChanged += OnMediaTimeChanged;
                     _mediaPlayer.LengthChanged += OnMediaLengthChanged;
                     _mediaPlayer.EncounteredError += OnMediaEncounteredError;
                     // プレイヤー生成前に設定されていた音量を適用
                     _mediaPlayer.Volume = (int)(_desiredVolume * 100);
+                    _mediaPlayer.SetRate(_desiredPlaybackSpeed);
                 }
 
                 _mediaPlayer.Stop();
@@ -115,6 +120,16 @@ namespace PotatoMusicPlayer.Services
             {
                 if (_mediaPlayer != null)
                 {
+                    // EndReached後のLibVLCはEnded状態を保持することがある。
+                    // Playだけでは再開できないため、停止ボタンと同じく先頭へ戻してから再生する。
+                    if ((_mediaPlayer.State == VLCState.Ended ||
+                        (_mediaPlayer.Length > 0 && _mediaPlayer.Time >= _mediaPlayer.Length)) &&
+                        !_positionSetAfterEnd)
+                    {
+                        _mediaPlayer.Stop();
+                        _mediaPlayer.Time = 0;
+                    }
+                    _positionSetAfterEnd = false;
                     _mediaPlayer.Play();
                     Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
                 }
@@ -122,6 +137,39 @@ namespace PotatoMusicPlayer.Services
             catch (Exception ex)
             {
                 Raise(() => ErrorOccurred?.Invoke(this, $"Play failed: {ex.Message}"));
+            }
+        }
+
+        /// <summary>指定位置へ移動して、その位置から再生する。</summary>
+        public void PlayFromPosition(long milliseconds)
+        {
+            try
+            {
+                if (_mediaPlayer == null)
+                    return;
+
+                long targetPosition = Math.Max(0, milliseconds);
+                if (_mediaPlayer.State == VLCState.Stopped ||
+                    _mediaPlayer.State == VLCState.Ended ||
+                    (_mediaPlayer.Length > 0 && _mediaPlayer.Time >= _mediaPlayer.Length))
+                {
+                    // LibVLC ignores Time changes while stopped/ended. Start first,
+                    // then apply the requested position from the Playing event.
+                    _pendingSeekPosition = targetPosition;
+                    _positionSetAfterEnd = true;
+                    _mediaPlayer.Play();
+                    Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
+                    return;
+                }
+
+                _mediaPlayer.Time = targetPosition;
+                _positionSetAfterEnd = false;
+                _mediaPlayer.Play();
+                Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
+            }
+            catch (Exception ex)
+            {
+                Raise(() => ErrorOccurred?.Invoke(this, $"PlayFromPosition failed: {ex.Message}"));
             }
         }
 
@@ -169,6 +217,7 @@ namespace PotatoMusicPlayer.Services
                 {
                     _mediaPlayer.Stop();
                     _mediaPlayer.Time = 0;
+                    _positionSetAfterEnd = false;
                     Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
                 }
             }
@@ -187,6 +236,14 @@ namespace PotatoMusicPlayer.Services
             {
                 if (_mediaPlayer != null)
                 {
+                    // Ended状態ではTimeの変更だけでは再生可能状態に戻らないため、
+                    // シーク操作時も一度だけ停止してから指定位置を設定する。
+                    if (_mediaPlayer.State == VLCState.Ended ||
+                        (_mediaPlayer.Length > 0 && _mediaPlayer.Time >= _mediaPlayer.Length))
+                    {
+                        _mediaPlayer.Stop();
+                        _positionSetAfterEnd = true;
+                    }
                     _mediaPlayer.Time = milliseconds;
                     Raise(() => PositionChanged?.Invoke(this, TimeSpan.FromMilliseconds(milliseconds)));
                 }
@@ -248,6 +305,7 @@ namespace PotatoMusicPlayer.Services
             try
             {
                 speed = Math.Max(0.25f, speed);  // 0.25倍以上
+                _desiredPlaybackSpeed = speed;
                 if (_mediaPlayer != null)
                 {
                     _mediaPlayer.SetRate(speed);
@@ -330,6 +388,7 @@ namespace PotatoMusicPlayer.Services
             {
                 // ファイル未読み込みでも、ユーザー設定済みの音量を反映して返す
                 state.Volume = _desiredVolume;
+                state.PlaybackSpeed = _desiredPlaybackSpeed;
                 return state;
             }
 
@@ -387,6 +446,19 @@ namespace PotatoMusicPlayer.Services
         private void OnMediaEnded(object sender, EventArgs e)
         {
             Raise(() => MediaEnded?.Invoke(this, EventArgs.Empty));
+        }
+
+        private void OnMediaPlaying(object sender, EventArgs e)
+        {
+            if (!_pendingSeekPosition.HasValue)
+                return;
+
+            long position = _pendingSeekPosition.Value;
+            _pendingSeekPosition = null;
+            _mediaPlayer.Time = position;
+            _positionSetAfterEnd = false;
+            Raise(() => PositionChanged?.Invoke(this, TimeSpan.FromMilliseconds(position)));
+            Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
         }
 
         private void OnMediaEncounteredError(object sender, EventArgs e)

@@ -52,6 +52,17 @@ namespace PotatoMusicPlayer.ViewModels
 
             // 初期状態設定
             PlaybackState = new PlaybackState();
+            var startupSettings = _settingsService.GetSettings();
+            float startupVolume = Math.Clamp(startupSettings.DefaultVolume, 0.0f, startupSettings.MaxVolumeMultiplier);
+            float startupSpeed = Math.Clamp(startupSettings.DefaultPlaybackSpeed, 0.25f, 4.0f);
+            _volumeBeforeMute = startupVolume;
+            _mediaService.SetVolume(startupVolume, startupSettings.MaxVolumeMultiplier);
+            _mediaService.SetPlaybackSpeed(startupSpeed);
+            PlaybackState.Volume = startupVolume;
+            PlaybackState.PlaybackSpeed = startupSpeed;
+            PlaybackState.LoopMode = startupSettings.RememberLastLoopMode
+                ? startupSettings.DefaultLoopMode
+                : LoopMode.Off;
             StatusMessage = "Ready to play music";
         }
 
@@ -184,12 +195,20 @@ namespace PotatoMusicPlayer.ViewModels
 
         public void TogglePlayPause()
         {
-            _mediaService.TogglePlayPause();
-            UpdatePlaybackState();
+            if (PlaybackState?.State == PlayState.Playing)
+            {
+                _mediaService.Pause();
+                UpdatePlaybackState();
+                return;
+            }
+
+            Play();
         }
 
         public void Play()
         {
+            // MediaService resets LibVLC's Ended state when necessary. Do not
+            // use the cached UI position here, since it can be stale after a seek.
             _mediaService.Play();
             UpdatePlaybackState();
         }
@@ -320,6 +339,12 @@ namespace PotatoMusicPlayer.ViewModels
             _mediaService.SetPosition((long)(seconds * 1000));
         }
 
+        public void SeekAndPlay(double seconds)
+        {
+            _mediaService.PlayFromPosition((long)Math.Max(0, seconds * 1000));
+            UpdatePlaybackState();
+        }
+
         /// <summary>
         /// 再生を妨げずに、表示用のピーク振幅データをバックグラウンドで生成する。
         /// 新しいファイルを読み込んだ場合は、古い要求の結果を破棄する。
@@ -438,6 +463,11 @@ namespace PotatoMusicPlayer.ViewModels
                     Stop();
                     Play();
                 }
+            }
+
+            if (PlaybackState.LoopMode == LoopMode.Off)
+            {
+                UpdatePlaybackState();
             }
 
             StatusMessage = "Playback finished";

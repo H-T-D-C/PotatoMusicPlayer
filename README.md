@@ -1,45 +1,57 @@
 # Potato Music Player
 
-Windows 64bit 向け音楽プレイヤー。C# + WPF + LibVLCSharp。
+Windows向けの軽量な音楽プレイヤーです。C# / WPF と LibVLCSharpを使用し、VLC風の再生操作とカスタマイズ可能な設定を提供します。
 
-## セットアップ
+## 主な機能
 
-1. Visual Studio 2022 で `PotatoMusicPlayer.sln` を開く
-2. NuGet パッケージを復元（ビルド時に自動、または `dotnet restore`）
-3. `dotnet build` → `dotnet run`
+- MP3 / FLAC / WAV / OGGの再生、一時停止、停止、シーク
+- 曲名、アーティスト、ビットレート、サンプルレート、再生時間の表示
+- 波形表示と波形上のクリック／ドラッグシーク
+- ループ、再生速度変更、最大200%の音量、ミュート
+- Windowsタスクバーからの前へ・再生／一時停止・停止操作
+- 最近使ったファイル、ライト／ダーク／システムテーマ
+- 日本語／English (US)の言語切り替え
+- ホットキーの変更、組み合わせキー、リセット、クリア
+- エクスプローラーの「プログラムから開く」から音声ファイルを直接再生
 
-必要環境: .NET 8 SDK, Windows 10/11 64bit
+## 動作環境
 
-## 現在の実装状況（Phase 1〜2 途中）
+- Windows 10/11（64-bit）
+- .NET 8 SDK
 
-### 完成
-- ファイル再生（LibVLCSharp）: 再生/一時停止/停止/シーク/速度変更/音量
-- メタデータ表示（曲名/アーティスト/ビットレート/サンプルレート）
-- MVVM構成（Models / Services / ViewModels）
-- 設定の保存・読み込み（JSON, `%APPDATA%\Local\PotatoMusicPlayer\`）
-- 最近使ったファイル管理
-- ダークテーマ UI（タイトルバー統合メニュー付き MainWindow）
-- アプリ内ホットキー（ウィンドウにフォーカスがある時のみ有効）
-- 波形データ抽出ロジック（NAudo使用、WaveformService）
+LibVLCSharpとVLCのWindows向け依存ファイルはNuGetから復元されます。
 
-### 未実装（次フェーズ）
-- **波形の実際の描画**（WaveformCanvas への棒グラフ描画コード）
-- **グローバルホットキー**（アプリが非フォーカスでも効くもの。HotKeyService, Win32 RegisterHotKey が必要）
-- **設定画面 UI**（SettingsWindow.xaml。ホットキーのカスタマイズ、衝突チェック含む）
-- **タスクバー統合**（サムネイルツールバーボタン: 再生/停止/前へ/次へ）
-- 音量スライダーの実際の MediaService への反映（現状UIの表示のみ実装）
-- 多言語対応（英語/日本語切り替え）
-- 出力デバイス選択
+## ビルドと起動
 
-## 既知の注意点
+リポジトリのルートで実行します。
 
-- **OGG (Vorbis) ファイルの波形抽出**: Windows Media Foundation は Vorbis を標準サポートしていないため、
-  環境によっては波形が生成できない場合があります（再生自体はLibVLCなので問題ありません）。
-  対応が必要な場合は `NVorbis` パッケージの追加を検討してください。
-- LibVLCSharp 使用のため、実行環境に VLC ランタイムが必要です。`VideoLAN.LibVLC.Windows` パッケージが
-  自動的にバンドルするため、通常は追加インストール不要です。
+```powershell
+dotnet restore
+dotnet build PotatoMusicPlayer/PotatoMusicPlayer.csproj
+dotnet run --project PotatoMusicPlayer/PotatoMusicPlayer.csproj
+```
 
-## 未確認事項
+Visual Studioでは `PotatoMusicPlayer.sln` または `PotatoMusicPlayer/PotatoMusicPlayer.csproj`を開いて実行できます。
 
-- ウィンドウ初期サイズ: 仕様書内で「900×400」(概要欄)と「400×150」(ウィンドウ仕様欄)の記載が
-  混在しています。現状は 400×150 を採用しています。
+## プロジェクト構成
+
+- `PotatoMusicPlayer/MainWindow.xaml`: メイン画面、メニュー、再生・波形・音量UI
+- `PotatoMusicPlayer/Views/`: 設定画面などの追加ウィンドウ
+- `PotatoMusicPlayer/ViewModels/`: 再生状態とUIコマンド
+- `PotatoMusicPlayer/Services/`: メディア、設定、テーマ、言語、波形、ファイル処理
+- `PotatoMusicPlayer/Models/`: 設定、メディア情報、再生状態、ホットキー
+- `PotatoMusicPlayer/Resources/Themes/`: テーマ用XAMLリソース
+- `PotatoMusicPlayer/Resources/Languages/`: `ja-JP.json` / `en-US.json`
+- `PotatoMusicPlayer/Resources/Icons/`: テーマ別スピーカーアイコン
+
+詳細な仕様、対応状況、ロードマップは [PotatoMusicPlayer_Specification.md](PotatoMusicPlayer/PotatoMusicPlayer_Specification.md)を参照してください。
+
+## 設定ファイルとファイル関連付け
+
+設定は `%LOCALAPPDATA%\PotatoMusicPlayer\AppSettings.json`に保存されます。設定画面からホットキー、数値、音量、表示、言語、テーマを変更できます。
+
+起動時に、現在のユーザーだけを対象としてMP3 / FLAC / WAV / OGGを「プログラムから開く」の候補へ登録します。既定のアプリを強制的に変更することはありません。登録済みのアプリを選択すると、渡された音声ファイルを読み込んで再生します。
+
+## 開発上の注意
+
+現在テストプロジェクトはありません。UIや再生処理を変更した場合は、各対応形式の再生、シーク、設定保存、テーマ切り替え、エクスプローラーからの起動を手動で確認してください。プレイリスト、イコライザー、音量正規化などは今後の拡張予定です。
