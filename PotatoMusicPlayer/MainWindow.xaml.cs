@@ -14,6 +14,7 @@ namespace PotatoMusicPlayer
     public partial class MainWindow : Window
     {
         private readonly MainViewModel _viewModel;
+        private readonly LanguageService _languageService;
         private bool _isDraggingSeekBar = false;
         private bool _isDraggingWaveform = false;
         private bool _isUpdatingVolumeFromCode = false;
@@ -25,6 +26,8 @@ namespace PotatoMusicPlayer
 
             _viewModel = new MainViewModel();
             DataContext = _viewModel;
+            _languageService = new LanguageService(_viewModel.Settings.Language);
+            ApplyLanguage();
 
             // ViewModel のプロパティ変更を UI に反映
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
@@ -103,6 +106,11 @@ namespace PotatoMusicPlayer
                 {
                     UpdateWaveformProgress();
                 }
+                else if (e.PropertyName == nameof(MainViewModel.Settings))
+                {
+                    _languageService.Load(_viewModel.Settings.Language);
+                    ApplyLanguage();
+                }
             });
         }
 
@@ -113,7 +121,7 @@ namespace PotatoMusicPlayer
             {
                 TitleText.Text = "再生するファイルがありません";
                 ArtistText.Text = "";
-                Title = "Potato Music Player";
+                Title = _languageService.Get("Main.Title");
                 return;
             }
 
@@ -122,7 +130,7 @@ namespace PotatoMusicPlayer
                 ? $"{media.Artist}  |  {media.Bitrate}kbps  |  {media.SampleRate}Hz"
                 : $"{media.Bitrate}kbps | {media.SampleRate}Hz";
 
-            Title = $"{TitleText.Text} - Potato Music Player";
+            Title = $"{TitleText.Text} - {_languageService.Get("Main.Title")}";
             TotalTimeText.Text = FormatTime(media.Duration);
             SeekBar.Maximum = media.Duration.TotalSeconds;
         }
@@ -159,14 +167,58 @@ namespace PotatoMusicPlayer
 
             // 音量バーを実際の音量に追従させる（ホットキー操作時も反映）
             _isUpdatingVolumeFromCode = true;
-            VolumeSlider.Value = state.VolumePercent;
-            VolumeText.Text = $"{state.VolumePercent}%";
+            if (!state.IsMuted)
+                VolumeSlider.Value = state.VolumePercent;
+            VolumeText.Text = $"{(int)VolumeSlider.Value}%";
             _isUpdatingVolumeFromCode = false;
+            UpdateVolumeIcon(state.IsMuted ? 0 : VolumeSlider.Value);
         }
 
         private string FormatTime(TimeSpan ts)
         {
             return ts.Hours > 0 ? ts.ToString(@"hh\:mm\:ss") : ts.ToString(@"mm\:ss");
+        }
+
+        private void ApplyLanguage()
+        {
+            Title = _languageService.Get("Main.Title");
+            FileMenuItem.Header = _languageService.Get("Main.File");
+            PlaybackMenuItem.Header = _languageService.Get("Main.Playback");
+            EditMenuItem.Header = _languageService.Get("Main.Edit");
+            ViewMenuItem.Header = _languageService.Get("Main.View");
+            OtherMenuItem.Header = _languageService.Get("Main.Other");
+            VolumeIcon.ToolTip = _languageService.Get("Main.VolumeTooltip");
+            if (_viewModel.CurrentMediaFile == null)
+                TitleText.Text = _languageService.Get("Main.NoFile");
+
+            // ファイルメニュー
+            FileOpenMenuItem.Header = _languageService.Get("Menu.File.Open");
+            FileOpenLocationMenuItem.Header = _languageService.Get("Menu.File.OpenLocation");
+            FileOpenTerminalMenuItem.Header = _languageService.Get("Menu.File.OpenTerminal");
+            RecentFilesMenuItem.Header = _languageService.Get("Menu.File.RecentFiles");
+            FileExitMenuItem.Header = _languageService.Get("Menu.File.Exit");
+
+            // 再生メニュー
+            PlaybackPlayPauseMenuItem.Header = _languageService.Get("Menu.Playback.PlayPause");
+            PlaybackStopMenuItem.Header = _languageService.Get("Menu.Playback.Stop");
+            PlaybackGoToStartMenuItem.Header = _languageService.Get("Menu.Playback.GoToStart");
+            PlaybackSpeedResetMenuItem.Header = _languageService.Get("Menu.Playback.SpeedReset");
+            PlaybackSpeedDecreaseMenuItem.Header = _languageService.Get("Menu.Playback.SpeedDecrease");
+            PlaybackSpeedIncreaseMenuItem.Header = _languageService.Get("Menu.Playback.SpeedIncrease");
+            PlaybackSkipForwardMenuItem.Header = _languageService.Get("Menu.Playback.SkipForward");
+            PlaybackSkipBackwardMenuItem.Header = _languageService.Get("Menu.Playback.SkipBackward");
+
+            // 編集メニュー
+            EditSettingsMenuItem.Header = _languageService.Get("Menu.Edit.Settings");
+
+            // 表示メニュー
+            AlwaysOnTopMenuItem.Header = _languageService.Get("Menu.View.AlwaysOnTop");
+            FixWindowSizeMenuItem.Header = _languageService.Get("Menu.View.FixWindowSize");
+            ShowWaveformMenuItem.Header = _languageService.Get("Menu.View.ShowWaveform");
+            ViewFullScreenMenuItem.Header = _languageService.Get("Menu.View.FullScreen");
+
+            // その他メニュー
+            OtherAboutMenuItem.Header = _languageService.Get("Menu.Other.About");
         }
 
         // ========== タイトルバー(カスタム) ==========
@@ -457,12 +509,46 @@ namespace PotatoMusicPlayer
             {
                 VolumeText.Text = $"{(int)e.NewValue}%";
             }
+            UpdateVolumeIcon(e.NewValue);
 
             // 初期化中やプログラム的な更新時は再反映しない（無限ループ防止）
             if (_isUpdatingVolumeFromCode || _viewModel == null)
                 return;
 
             _viewModel.SetVolume(e.NewValue);
+        }
+
+        private void VolumeIcon_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            _viewModel.ToggleMute();
+            e.Handled = true;
+        }
+
+        // 音量領域(アイコン・スライダー・テキスト)上でのマウススクロールで音量を1%ずつ調整
+        private void VolumeArea_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            double delta = e.Delta > 0 ? 1.0 : -1.0;
+            double newValue = Math.Clamp(VolumeSlider.Value + delta, VolumeSlider.Minimum, VolumeSlider.Maximum);
+
+            if (Math.Abs(newValue - VolumeSlider.Value) > 0.001)
+            {
+                VolumeSlider.Value = newValue;
+            }
+
+            e.Handled = true;
+        }
+
+
+        private void UpdateVolumeIcon(double volumePercent)
+        {
+            if (VolumeIcon == null)
+                return;
+
+            int level = volumePercent <= 0
+                ? 0
+                : Math.Min(3, (int)Math.Ceiling(volumePercent / 50.0));
+            VolumeIcon.Source = new System.Windows.Media.Imaging.BitmapImage(
+                new Uri($"pack://application:,,,/assets/speaker/speakers_{level}.png"));
         }
 
         // ========== ホットキー処理(アプリ内フォーカス時) ==========
@@ -491,6 +577,10 @@ namespace PotatoMusicPlayer
                     break;
                 case Key.Down:
                     _viewModel.DecreaseVolume();
+                    e.Handled = true;
+                    break;
+                case Key.M:
+                    _viewModel.ToggleMute();
                     e.Handled = true;
                     break;
                 case Key.Home:

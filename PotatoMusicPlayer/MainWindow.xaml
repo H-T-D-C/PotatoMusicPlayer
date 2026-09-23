@@ -44,40 +44,40 @@
                             <StackPanel Orientation="Horizontal"/>
                         </ItemsPanelTemplate>
                     </Menu.ItemsPanel>
-                    <MenuItem Header="ファイル">
-                        <MenuItem Header="開く..." Click="OpenFile_Click"/>
-                        <MenuItem Header="ファイルの場所を開く" Click="OpenFileLocation_Click"/>
-                        <MenuItem Header="ターミナルで開く" Click="OpenInTerminal_Click"/>
+                    <MenuItem x:Name="FileMenuItem" Header="ファイル">
+                        <MenuItem x:Name="FileOpenMenuItem" Header="開く..." Click="OpenFile_Click"/>
+                        <MenuItem x:Name="FileOpenLocationMenuItem" Header="ファイルの場所を開く" Click="OpenFileLocation_Click"/>
+                        <MenuItem x:Name="FileOpenTerminalMenuItem" Header="ターミナルで開く" Click="OpenInTerminal_Click"/>
                         <Separator/>
                         <MenuItem x:Name="RecentFilesMenuItem" Header="最近使ったファイル"/>
                         <Separator/>
-                        <MenuItem Header="終了" Click="Exit_Click"/>
+                        <MenuItem x:Name="FileExitMenuItem" Header="終了" Click="Exit_Click"/>
                     </MenuItem>
-                    <MenuItem Header="再生">
-                        <MenuItem Header="再生/一時停止" Click="PlayPause_Click"/>
-                        <MenuItem Header="停止" Click="Stop_Click"/>
+                    <MenuItem x:Name="PlaybackMenuItem" Header="再生">
+                        <MenuItem x:Name="PlaybackPlayPauseMenuItem" Header="再生/一時停止" Click="PlayPause_Click"/>
+                        <MenuItem x:Name="PlaybackStopMenuItem" Header="停止" Click="Stop_Click"/>
                         <Separator/>
-                        <MenuItem Header="最初へ戻る" Click="GoToStart_Click"/>
+                        <MenuItem x:Name="PlaybackGoToStartMenuItem" Header="最初へ戻る" Click="GoToStart_Click"/>
                         <Separator/>
-                        <MenuItem Header="速度: 100%にセット" Click="SpeedReset_Click"/>
-                        <MenuItem Header="速度: 5%遅く" Click="SpeedDecrease_Click"/>
-                        <MenuItem Header="速度: 5%速く" Click="SpeedIncrease_Click"/>
+                        <MenuItem x:Name="PlaybackSpeedResetMenuItem" Header="速度: 100%にセット" Click="SpeedReset_Click"/>
+                        <MenuItem x:Name="PlaybackSpeedDecreaseMenuItem" Header="速度: 5%遅く" Click="SpeedDecrease_Click"/>
+                        <MenuItem x:Name="PlaybackSpeedIncreaseMenuItem" Header="速度: 5%速く" Click="SpeedIncrease_Click"/>
                         <Separator/>
-                        <MenuItem Header="5秒スキップ" Click="SkipForward_Click"/>
-                        <MenuItem Header="5秒戻る" Click="SkipBackward_Click"/>
+                        <MenuItem x:Name="PlaybackSkipForwardMenuItem" Header="5秒スキップ" Click="SkipForward_Click"/>
+                        <MenuItem x:Name="PlaybackSkipBackwardMenuItem" Header="5秒戻る" Click="SkipBackward_Click"/>
                     </MenuItem>
-                    <MenuItem Header="編集">
-                        <MenuItem Header="設定..." Click="OpenSettings_Click"/>
+                    <MenuItem x:Name="EditMenuItem" Header="編集">
+                        <MenuItem x:Name="EditSettingsMenuItem" Header="設定..." Click="OpenSettings_Click"/>
                     </MenuItem>
-                    <MenuItem Header="表示">
+                    <MenuItem x:Name="ViewMenuItem" Header="表示">
                         <MenuItem x:Name="AlwaysOnTopMenuItem" Header="常に最前面" IsCheckable="True" Click="AlwaysOnTop_Click"/>
                         <MenuItem x:Name="FixWindowSizeMenuItem" Header="ウィンドウサイズ固定" IsCheckable="True" Click="FixWindowSize_Click"/>
                         <MenuItem x:Name="ShowWaveformMenuItem" Header="波形を表示" IsCheckable="True" IsChecked="True" Click="ShowWaveform_Click"/>
                         <Separator/>
-                        <MenuItem Header="全画面表示" Click="FullScreen_Click"/>
+                        <MenuItem x:Name="ViewFullScreenMenuItem" Header="全画面表示" Click="FullScreen_Click"/>
                     </MenuItem>
-                    <MenuItem Header="その他">
-                        <MenuItem Header="バージョン情報" Click="About_Click"/>
+                    <MenuItem x:Name="OtherMenuItem" Header="その他">
+                        <MenuItem x:Name="OtherAboutMenuItem" Header="バージョン情報" Click="About_Click"/>
                     </MenuItem>
                 </Menu>
                 <!-- アイコン領域はドラッグ可能なタイトルバー領域としても使用する -->
@@ -104,7 +104,7 @@
 
             <!-- ============ メタデータ表示 ============ -->
             <StackPanel Grid.Row="1" Margin="8,4,8,2">
-                <TextBlock x:Name="TitleText" Text="再生するファイルがありません" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock x:Name="TitleText" Text="再生するファイルがありません" Style="{StaticResource TitleTextStyle}"/>
                 <TextBlock x:Name="ArtistText" Text="" Foreground="#969696" FontSize="11"/>
             </StackPanel>
 
@@ -158,9 +158,13 @@
                 </StackPanel>
 
                 <!-- 右: 音量 -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="🔊" FontSize="12" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                    <Slider x:Name="VolumeSlider" Width="70" Minimum="0" Maximum="200" Value="80"
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                            MouseWheel="VolumeArea_MouseWheel">
+                    <Image x:Name="VolumeIcon" Source="pack://application:,,,/assets/speaker/speakers_3.png"
+                           Width="16" Height="16" Stretch="Uniform" Margin="0,0,4,0"
+                           ToolTip="ミュート切り替え" Cursor="Hand"
+                           MouseLeftButtonUp="VolumeIcon_MouseLeftButtonUp"/>
+                    <Slider x:Name="VolumeSlider" Width="70" Height="18" Minimum="0" Maximum="200" Value="80"
                             VerticalAlignment="Center" ValueChanged="VolumeSlider_ValueChanged"/>
                     <TextBlock x:Name="VolumeText" Text="80%" Foreground="#969696" FontSize="10" Margin="6,0,0,0" VerticalAlignment="Center" Width="26" TextAlignment="Right"/>
                 </StackPanel>

@@ -20,6 +20,9 @@ namespace PotatoMusicPlayer.ViewModels
         private readonly SettingsService _settingsService;
         private System.Windows.Threading.DispatcherTimer _updateTimer;
         private int _waveformRequestId;
+        private bool _isMuted;
+        private float _volumeBeforeMute = 0.8f;
+        private float? _volumeStateOverride;
 
         // プロパティ
         private MediaFile _currentMediaFile;
@@ -91,6 +94,7 @@ namespace PotatoMusicPlayer.ViewModels
         }
 
         public AppSettings Settings => _settingsService.GetSettings();
+        public bool IsMuted => _isMuted;
 
         // ========== Commands ==========
 
@@ -217,6 +221,8 @@ namespace PotatoMusicPlayer.ViewModels
         public void IncreaseVolume()
         {
             var settings = _settingsService.GetSettings();
+            if (_isMuted)
+                SetMuted(false);
             float change = settings.VolumeChangePercent / 100.0f;
             float maxVolume = settings.MaxVolumeMultiplier;
             float newVolume = Math.Min(PlaybackState.Volume + change, maxVolume);
@@ -227,6 +233,8 @@ namespace PotatoMusicPlayer.ViewModels
         public void DecreaseVolume()
         {
             var settings = _settingsService.GetSettings();
+            if (_isMuted)
+                SetMuted(false);
             float change = settings.VolumeChangePercent / 100.0f;
             float newVolume = Math.Max(PlaybackState.Volume - change, 0.0f);
             _mediaService.SetVolume(newVolume, settings.MaxVolumeMultiplier);
@@ -241,7 +249,39 @@ namespace PotatoMusicPlayer.ViewModels
             var settings = _settingsService.GetSettings();
             float volume = (float)(percent / 100.0);
             volume = Math.Clamp(volume, 0.0f, settings.MaxVolumeMultiplier);
+            _isMuted = false;
+            _volumeBeforeMute = volume;
+            _volumeStateOverride = volume;
             _mediaService.SetVolume(volume, settings.MaxVolumeMultiplier);
+            UpdatePlaybackState();
+        }
+
+        public void ToggleMute()
+        {
+            SetMuted(!_isMuted);
+        }
+
+        private void SetMuted(bool muted)
+        {
+            var settings = _settingsService.GetSettings();
+            if (muted)
+            {
+                if (!_isMuted)
+                    _volumeBeforeMute = PlaybackState?.Volume ?? _volumeBeforeMute;
+
+                _isMuted = true;
+                _mediaService.SetVolume(0, settings.MaxVolumeMultiplier);
+            }
+            else
+            {
+                _isMuted = false;
+                float restoredVolume = Math.Clamp(_volumeBeforeMute, 0.0f, settings.MaxVolumeMultiplier);
+                // LibVLC の状態取得が一瞬だけ旧値(0)を返しても、復元値を先にUIへ渡す。
+                _volumeStateOverride = restoredVolume;
+                _mediaService.SetVolume(restoredVolume, settings.MaxVolumeMultiplier);
+            }
+
+            OnPropertyChanged(nameof(IsMuted));
             UpdatePlaybackState();
         }
 
@@ -364,6 +404,12 @@ namespace PotatoMusicPlayer.ViewModels
             if (PlaybackState != null)
             {
                 state.LoopMode = PlaybackState.LoopMode;
+            }
+            state.IsMuted = _isMuted;
+            if (_volumeStateOverride.HasValue)
+            {
+                state.Volume = _volumeStateOverride.Value;
+                _volumeStateOverride = null;
             }
             PlaybackState = state;
         }

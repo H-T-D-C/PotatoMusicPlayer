@@ -17,9 +17,9 @@
 
             <!-- 左: カテゴリ -->
             <ListBox x:Name="CategoryList" Grid.Column="0" Grid.Row="0" Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextLightBrush}" FontSize="12" SelectionChanged="CategoryList_SelectionChanged">
-                <ListBoxItem Tag="General">一般</ListBoxItem>
-                <ListBoxItem Tag="Volume">音量</ListBoxItem>
-                <ListBoxItem Tag="Display">表示</ListBoxItem>
+                <ListBoxItem x:Name="GeneralCategoryItem" Tag="General">一般</ListBoxItem>
+                <ListBoxItem x:Name="VolumeCategoryItem" Tag="Volume">音量</ListBoxItem>
+                <ListBoxItem x:Name="DisplayCategoryItem" Tag="Display">表示</ListBoxItem>
             </ListBox>
 
             <!-- 区切り -->
@@ -29,13 +29,24 @@
             <Grid Grid.Column="2" Grid.Row="0" Margin="8,0,0,0">
                 <!-- General -->
                 <StackPanel x:Name="GeneralPanel" Visibility="Collapsed">
-                    <TextBlock Text="一般設定" FontSize="14" FontWeight="Bold" Margin="0,0,0,8" Foreground="{StaticResource TextLightBrush}"/>
-                    <TextBlock Text="（今は項目がありません）" Foreground="{StaticResource TextDimBrush}"/>
+                    <TextBlock x:Name="GeneralTitleText" Text="一般設定" FontSize="14" FontWeight="Bold" Margin="0,0,0,8" Foreground="{StaticResource TextLightBrush}"/>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="LanguageLabelText" Text="言語" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextDimBrush}"/>
+                        <ComboBox x:Name="LanguageComboBox" Grid.Column="1" Width="180" HorizontalAlignment="Left"
+                                  Style="{StaticResource DarkComboBoxStyle}">
+                            <ComboBoxItem x:Name="JapaneseLanguageItem" Content="Japanese (日本)" Tag="Japanese"/>
+                            <ComboBoxItem x:Name="EnglishLanguageItem" Content="English (US)" Tag="EnglishUS"/>
+                        </ComboBox>
+                    </Grid>
                 </StackPanel>
 
                 <!-- Volume -->
                 <StackPanel x:Name="VolumePanel" Visibility="Collapsed">
-                    <TextBlock Text="音量設定" FontSize="14" FontWeight="Bold" Margin="0,0,0,8" Foreground="{StaticResource TextLightBrush}"/>
+                    <TextBlock x:Name="VolumeTitleText" Text="音量設定" FontSize="14" FontWeight="Bold" Margin="0,0,0,8" Foreground="{StaticResource TextLightBrush}"/>
 
                     <Grid Margin="0,4">
                         <Grid.ColumnDefinitions>
@@ -44,19 +55,19 @@
                             <ColumnDefinition Width="60"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="音量の上限 (%)" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
+                        <TextBlock x:Name="MaxVolumeLabelText" Text="音量の上限 (%)" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
                         <Slider x:Name="MaxVolumeSlider" Grid.Column="1" Minimum="100" Maximum="400" TickFrequency="10" IsSnapToTickEnabled="False" Height="24" VerticalAlignment="Center"/>
                         <TextBox x:Name="MaxVolumeText" Grid.Column="2" Width="52" Margin="8,0,0,0" VerticalContentAlignment="Center"/>
                     </Grid>
 
-                    <TextBlock Text="(例: 200 = 200%)" Foreground="{StaticResource TextDimBrush}" FontSize="11" Margin="0,6,0,0"/>
+                    <TextBlock x:Name="VolumeExampleText" Text="(例: 200 = 200%)" Foreground="{StaticResource TextDimBrush}" FontSize="11" Margin="0,6,0,0"/>
                 </StackPanel>
 
                 <!-- Display -->
                 <StackPanel x:Name="DisplayPanel" Visibility="Collapsed">
-                    <TextBlock Text="表示設定" FontSize="14" FontWeight="Bold" Margin="0,0,0,8" Foreground="{StaticResource TextLightBrush}"/>
+                    <TextBlock x:Name="DisplayTitleText" Text="表示設定" FontSize="14" FontWeight="Bold" Margin="0,0,0,8" Foreground="{StaticResource TextLightBrush}"/>
                     <StackPanel Orientation="Horizontal" Margin="0,4">
-                        <TextBlock Text="波形表示" Width="160" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
+                        <TextBlock x:Name="ShowWaveformLabelText" Text="波形表示" Width="160" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
                         <CheckBox x:Name="ShowWaveformCheck" VerticalAlignment="Center"/>
                     </StackPanel>
                 </StackPanel>

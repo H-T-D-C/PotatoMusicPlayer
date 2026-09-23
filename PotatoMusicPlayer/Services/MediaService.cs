@@ -16,6 +16,8 @@ namespace PotatoMusicPlayer.Services
         private Media _currentMedia;
         private bool _isInitialized = false;
         private readonly SynchronizationContext _syncContext;
+        // ファイル未読み込み状態でも音量設定を保持する（再生開始時に適用される）
+        private float _desiredVolume = 0.8f;
 
         // イベント
         public event EventHandler<TimeSpan> PositionChanged;
@@ -85,6 +87,8 @@ namespace PotatoMusicPlayer.Services
                     _mediaPlayer.TimeChanged += OnMediaTimeChanged;
                     _mediaPlayer.LengthChanged += OnMediaLengthChanged;
                     _mediaPlayer.EncounteredError += OnMediaEncounteredError;
+                    // プレイヤー生成前に設定されていた音量を適用
+                    _mediaPlayer.Volume = (int)(_desiredVolume * 100);
                 }
 
                 _mediaPlayer.Stop();
@@ -220,6 +224,8 @@ namespace PotatoMusicPlayer.Services
             try
             {
                 volume = Math.Clamp(volume, 0.0f, maxMultiplier);
+                // 常に希望音量を記録しておき、プレイヤー未生成の間も状態取得で返せるようにする
+                _desiredVolume = volume;
                 if (_mediaPlayer != null)
                 {
                     _mediaPlayer.Volume = (int)(volume * 100);
@@ -292,7 +298,11 @@ namespace PotatoMusicPlayer.Services
             var state = new PlaybackState();
 
             if (_mediaPlayer == null)
+            {
+                // ファイル未読み込みでも、ユーザー設定済みの音量を反映して返す
+                state.Volume = _desiredVolume;
                 return state;
+            }
 
             try
             {

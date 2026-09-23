@@ -15,6 +15,10 @@
   <ItemGroup>
     <Content Include="potato.ico" />
     <Resource Include="potato.png" />
+    <Resource Include="assets\speaker\speakers_*.png" />
+    <Content Include="Resources\Languages\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
