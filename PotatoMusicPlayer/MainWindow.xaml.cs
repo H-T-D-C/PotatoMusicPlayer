@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -14,7 +15,9 @@ namespace PotatoMusicPlayer
     {
         private readonly MainViewModel _viewModel;
         private bool _isDraggingSeekBar = false;
+        private bool _isDraggingWaveform = false;
         private bool _isUpdatingVolumeFromCode = false;
+        private float[] _waveformData = Array.Empty<float>();
 
         public MainWindow()
         {
@@ -91,6 +94,15 @@ namespace PotatoMusicPlayer
                 {
                     UpdatePlaybackDisplay();
                 }
+                else if (e.PropertyName == nameof(MainViewModel.CurrentWaveformData))
+                {
+                    _waveformData = _viewModel.CurrentWaveformData;
+                    DrawWaveform();
+                }
+                else if (e.PropertyName == nameof(MainViewModel.WaveformProgress))
+                {
+                    UpdateWaveformProgress();
+                }
             });
         }
 
@@ -138,6 +150,11 @@ namespace PotatoMusicPlayer
             if (!_isDraggingSeekBar)
             {
                 SeekBar.Value = state.CurrentPosition.TotalSeconds;
+            }
+
+            if (!_isDraggingWaveform)
+            {
+                DrawPlaybackCursor(state.CurrentPosition, state.Duration);
             }
 
             // 音量バーを実際の音量に追従させる（ホットキー操作時も反映）
@@ -237,6 +254,8 @@ namespace PotatoMusicPlayer
         private void ShowWaveform_Click(object sender, RoutedEventArgs e)
         {
             WaveformContainer.Visibility = ShowWaveformMenuItem.IsChecked ? Visibility.Visible : Visibility.Collapsed;
+            if (ShowWaveformMenuItem.IsChecked)
+                DrawWaveform();
         }
 
         private void FullScreen_Click(object sender, RoutedEventArgs e)
@@ -260,6 +279,138 @@ namespace PotatoMusicPlayer
                 "バージョン情報",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
+        }
+
+        // ========== 波形表示・シーク ==========
+
+        private void WaveformCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            DrawWaveform();
+        }
+
+        private void DrawWaveform()
+        {
+            WaveformCanvas.Children.Clear();
+
+            if (_waveformData == null || _waveformData.Length == 0 ||
+                WaveformCanvas.ActualWidth <= 0 || WaveformCanvas.ActualHeight <= 0)
+                return;
+
+            // 画面幅に合わせてデータをピーク値でまとめる。バー本体は 1～4px に保つ。
+            int visibleBars = Math.Min(_waveformData.Length,
+                Math.Max(1, (int)(WaveformCanvas.ActualWidth / 2)));
+            double slotWidth = WaveformCanvas.ActualWidth / visibleBars;
+            double barWidth = Math.Clamp(slotWidth * 0.75, 1.0, 4.0);
+            double availableHeight = Math.Max(1, WaveformCanvas.ActualHeight - 4);
+            var waveformBrush = new SolidColorBrush(Color.FromRgb(120, 180, 255));
+            waveformBrush.Freeze();
+
+            for (int bar = 0; bar < visibleBars; bar++)
+            {
+                int start = bar * _waveformData.Length / visibleBars;
+                int end = Math.Max(start + 1, (bar + 1) * _waveformData.Length / visibleBars);
+                float peak = 0;
+
+                for (int sample = start; sample < end && sample < _waveformData.Length; sample++)
+                    peak = Math.Max(peak, _waveformData[sample]);
+
+                // 振幅の中心を波形ボックス中央に置き、上下へ均等に伸ばす。
+                double height = Math.Max(1, peak * availableHeight);
+                var rectangle = new Rectangle
+                {
+                    Width = barWidth,
+                    Height = height,
+                    Fill = waveformBrush,
+                    IsHitTestVisible = false
+                };
+
+                Canvas.SetLeft(rectangle, bar * slotWidth + (slotWidth - barWidth) / 2);
+                Canvas.SetTop(rectangle, (WaveformCanvas.ActualHeight - height) / 2);
+                WaveformCanvas.Children.Add(rectangle);
+            }
+
+            var state = _viewModel?.PlaybackState;
+            if (state != null)
+                DrawPlaybackCursor(state.CurrentPosition, state.Duration);
+        }
+
+        private void DrawPlaybackCursor(TimeSpan position, TimeSpan duration)
+        {
+            if (_waveformData == null || _waveformData.Length == 0 ||
+                duration.TotalSeconds <= 0 || WaveformCanvas.ActualWidth <= 0)
+                return;
+
+            // 波形を再描画せず、前回のカーソル線だけを差し替える。
+            for (int i = WaveformCanvas.Children.Count - 1; i >= 0; i--)
+            {
+                if (WaveformCanvas.Children[i] is Line line && line.Tag as string == "PlaybackCursor")
+                    WaveformCanvas.Children.RemoveAt(i);
+            }
+
+            double ratio = Math.Clamp(position.TotalSeconds / duration.TotalSeconds, 0, 1);
+            double cursorX = ratio * WaveformCanvas.ActualWidth;
+            var cursor = new Line
+            {
+                X1 = cursorX,
+                X2 = cursorX,
+                Y1 = 0,
+                Y2 = WaveformCanvas.ActualHeight,
+                Stroke = Brushes.White,
+                StrokeThickness = 1,
+                Tag = "PlaybackCursor",
+                IsHitTestVisible = false
+            };
+            WaveformCanvas.Children.Add(cursor);
+        }
+
+        private void UpdateWaveformProgress()
+        {
+            double progress = _viewModel.WaveformProgress;
+            bool isLoading = progress > 0 && progress < 1;
+            WaveformProgressText.Visibility = isLoading ? Visibility.Visible : Visibility.Collapsed;
+            WaveformProgressText.Text = isLoading ? $"波形を生成中... {(int)(progress * 100)}%" : string.Empty;
+        }
+
+        private void WaveformCanvas_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!UpdateWaveformPosition(e))
+                return;
+
+            _isDraggingWaveform = true;
+            WaveformCanvas.CaptureMouse();
+            e.Handled = true;
+        }
+
+        private void WaveformCanvas_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (_isDraggingWaveform && e.LeftButton == MouseButtonState.Pressed)
+                UpdateWaveformPosition(e);
+        }
+
+        private void WaveformCanvas_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!_isDraggingWaveform)
+                return;
+
+            if (UpdateWaveformPosition(e))
+                _viewModel.Play();
+
+            _isDraggingWaveform = false;
+            WaveformCanvas.ReleaseMouseCapture();
+            e.Handled = true;
+        }
+
+        private bool UpdateWaveformPosition(MouseEventArgs e)
+        {
+            var duration = _viewModel.PlaybackState?.Duration ?? TimeSpan.Zero;
+            if (duration.TotalSeconds <= 0 || WaveformCanvas.ActualWidth <= 0)
+                return false;
+
+            double ratio = Math.Clamp(e.GetPosition(WaveformCanvas).X / WaveformCanvas.ActualWidth, 0, 1);
+            var position = TimeSpan.FromSeconds(duration.TotalSeconds * ratio);
+            DrawPlaybackCursor(position, duration);
+            _viewModel.SetPosition(position.TotalSeconds);
+            return true;
         }
 
         // ========== 再生バー(シークバー) ==========

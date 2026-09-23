@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="clr-namespace:PotatoMusicPlayer.Converters;assembly=PotatoMusicPlayer"
         Title="Potato Music Player"
-        Width="900" Height="400"
-        MinWidth="500" MinHeight="220"
+        Width="900" Height="200"
+        MinWidth="500" MinHeight="190"
         Background="#1E1E1E"
         WindowStyle="None"
         ResizeMode="CanResizeWithGrip"
@@ -17,13 +17,16 @@
                 <!-- カスタムタイトルバー + メニュー -->
                 <RowDefinition Height="Auto"/>
                 <!-- メタデータ表示 -->
-                <RowDefinition Height="Auto"/>
-                <!-- 時間 / 再生バー -->
-                <RowDefinition Height="*"/>
+                <RowDefinition x:Name="WaveformRow" Height="56"/>
                 <!-- 波形表示 -->
                 <RowDefinition Height="Auto"/>
                 <!-- トランスポートコントロール -->
+                <RowDefinition Height="*"/>
+                <!-- 伸縮スペーサー(上側は上に詰め、再生バーは下端に固定) -->
+                <RowDefinition Height="Auto"/>
+                <!-- 時間 / 再生バー -->
             </Grid.RowDefinitions>
+
 
             <!-- ============ タイトルバー(メニュー統合) ============ -->
             <Grid Grid.Row="0" Background="#2D2D2D">
@@ -105,35 +108,34 @@
                 <TextBlock x:Name="ArtistText" Text="" Foreground="#969696" FontSize="11"/>
             </StackPanel>
 
-            <!-- ============ 時間表示 / 再生バー ============ -->
-            <Grid Grid.Row="2" Margin="8,0,8,2">
+            <!-- ============ 波形表示エリア ============ -->
+            <Grid Grid.Row="2" Margin="8,2,8,2">
+                <!-- 時刻表示と同じ列幅を確保し、波形の左右端をシークバーに揃える -->
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-
-                <TextBlock x:Name="CurrentTimeText" Grid.Column="0" Text="00:00" Foreground="#969696"
-                           FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="0,0,6,0"/>
-
-                <Slider x:Name="SeekBar" Grid.Column="1" Minimum="0" Maximum="100" Value="0"
-                        VerticalAlignment="Center"
-                        PreviewMouseLeftButtonDown="SeekBar_PreviewMouseLeftButtonDown"
-                        PreviewMouseMove="SeekBar_PreviewMouseMove"
-                        PreviewMouseLeftButtonUp="SeekBar_PreviewMouseLeftButtonUp"/>
-
-                <TextBlock x:Name="TotalTimeText" Grid.Column="2" Text="00:00" Foreground="#969696"
-                           FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                <TextBlock Grid.Column="0" Text="00:00" Foreground="Transparent"
+                           FontFamily="Consolas" FontSize="10" Margin="0,0,6,0"/>
+                <Border x:Name="WaveformContainer" Grid.Column="1"
+                        Background="#2D2D2D" CornerRadius="2">
+                    <Grid>
+                        <Canvas x:Name="WaveformCanvas" Background="Transparent" ClipToBounds="True"
+                                PreviewMouseLeftButtonDown="WaveformCanvas_PreviewMouseLeftButtonDown"
+                                PreviewMouseMove="WaveformCanvas_PreviewMouseMove"
+                                PreviewMouseLeftButtonUp="WaveformCanvas_PreviewMouseLeftButtonUp"
+                                SizeChanged="WaveformCanvas_SizeChanged"/>
+                        <TextBlock x:Name="WaveformProgressText" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="#969696" FontSize="11" Visibility="Collapsed" IsHitTestVisible="False"/>
+                    </Grid>
+                </Border>
+                <TextBlock Grid.Column="2" Text="00:00" Foreground="Transparent"
+                           FontFamily="Consolas" FontSize="10" Margin="6,0,0,0"/>
             </Grid>
 
-            <!-- ============ 波形表示エリア ============ -->
-            <Border x:Name="WaveformContainer" Grid.Row="3" Margin="8,2,8,2"
-                    Background="#2D2D2D" CornerRadius="2">
-                <Canvas x:Name="WaveformCanvas" ClipToBounds="True"/>
-            </Border>
-
             <!-- ============ トランスポートコントロール ============ -->
-            <Grid Grid.Row="4" Margin="8,2,8,6">
+            <Grid Grid.Row="3" Margin="8,2,8,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -162,6 +164,27 @@
                             VerticalAlignment="Center" ValueChanged="VolumeSlider_ValueChanged"/>
                     <TextBlock x:Name="VolumeText" Text="80%" Foreground="#969696" FontSize="10" Margin="6,0,0,0" VerticalAlignment="Center" Width="26" TextAlignment="Right"/>
                 </StackPanel>
+            </Grid>
+
+            <!-- ============ 時間表示 / 再生バー(下端に固定) ============ -->
+            <Grid Grid.Row="5" Margin="8,0,8,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="CurrentTimeText" Grid.Column="0" Text="00:00" Foreground="#969696"
+                           FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="0,0,6,0"/>
+
+                <Slider x:Name="SeekBar" Grid.Column="1" Minimum="0" Maximum="100" Value="0"
+                        VerticalAlignment="Center"
+                        PreviewMouseLeftButtonDown="SeekBar_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="SeekBar_PreviewMouseMove"
+                        PreviewMouseLeftButtonUp="SeekBar_PreviewMouseLeftButtonUp"/>
+
+                <TextBlock x:Name="TotalTimeText" Grid.Column="2" Text="00:00" Foreground="#969696"
+                           FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
             </Grid>
         </Grid>
     </Border>

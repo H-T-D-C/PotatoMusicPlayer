@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using PotatoMusicPlayer.Models;
@@ -18,12 +19,15 @@ namespace PotatoMusicPlayer.ViewModels
         private readonly MediaService _mediaService;
         private readonly SettingsService _settingsService;
         private System.Windows.Threading.DispatcherTimer _updateTimer;
+        private int _waveformRequestId;
 
         // プロパティ
         private MediaFile _currentMediaFile;
         private PlaybackState _playbackState;
         private bool _isLoading;
         private string _statusMessage;
+        private float[] _currentWaveformData = Array.Empty<float>();
+        private double _waveformProgress;
 
         public MainViewModel()
         {
@@ -72,6 +76,18 @@ namespace PotatoMusicPlayer.ViewModels
         {
             get => _statusMessage;
             set => SetProperty(ref _statusMessage, value);
+        }
+
+        public float[] CurrentWaveformData
+        {
+            get => _currentWaveformData;
+            private set => SetProperty(ref _currentWaveformData, value);
+        }
+
+        public double WaveformProgress
+        {
+            get => _waveformProgress;
+            private set => SetProperty(ref _waveformProgress, value);
         }
 
         public AppSettings Settings => _settingsService.GetSettings();
@@ -144,6 +160,7 @@ namespace PotatoMusicPlayer.ViewModels
                     _settingsService.AddRecentFile(filePath);
                     Play();
                     StatusMessage = $"Loaded: {CurrentMediaFile.FileName}";
+                    _ = LoadWaveformAsync(filePath);
                 }
                 else
                 {
@@ -263,6 +280,52 @@ namespace PotatoMusicPlayer.ViewModels
             _mediaService.SetPosition((long)(seconds * 1000));
         }
 
+        /// <summary>
+        /// 再生を妨げずに、表示用のピーク振幅データをバックグラウンドで生成する。
+        /// 新しいファイルを読み込んだ場合は、古い要求の結果を破棄する。
+        /// </summary>
+        public async Task LoadWaveformAsync(string filePath)
+        {
+            const int barCount = 1024;
+            int requestId = Interlocked.Increment(ref _waveformRequestId);
+            CurrentWaveformData = Array.Empty<float>();
+            WaveformProgress = 0;
+
+            var waveformService = new WaveformService();
+            EventHandler<double> progressHandler = (sender, progress) =>
+            {
+                System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (requestId == _waveformRequestId)
+                        WaveformProgress = progress;
+                }));
+            };
+            waveformService.ProgressChanged += progressHandler;
+
+            try
+            {
+                float[] data = await waveformService.GenerateWaveformAsync(filePath, barCount);
+                if (requestId == _waveformRequestId)
+                {
+                    CurrentWaveformData = data;
+                    WaveformProgress = 1;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Waveform generation failed: {ex}");
+                if (requestId == _waveformRequestId)
+                {
+                    CurrentWaveformData = Array.Empty<float>();
+                    WaveformProgress = 1;
+                }
+            }
+            finally
+            {
+                waveformService.ProgressChanged -= progressHandler;
+            }
+        }
+
         public void OpenSettings()
         {
             // 設定ウィンドウを開く（UIスレッドで実行される前提）
@@ -336,6 +399,7 @@ namespace PotatoMusicPlayer.ViewModels
 
         public void Dispose()
         {
+            Interlocked.Increment(ref _waveformRequestId);
             _updateTimer?.Stop();
             _mediaService?.Dispose();
         }
