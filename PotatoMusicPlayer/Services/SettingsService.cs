@@ -45,8 +45,7 @@ namespace PotatoMusicPlayer.Services
                     string json = File.ReadAllText(_settingsFilePath);
                     var settings = JsonConvert.DeserializeObject<AppSettings>(json);
                     
-                    if (settings != null && settings.HotKeyBindings.Count == 0)
-                        settings.InitializeDefaultHotKeys();
+                    settings?.EnsureDefaultHotKeys();
                     
                     return settings ?? CreateDefaultSettings();
                 }

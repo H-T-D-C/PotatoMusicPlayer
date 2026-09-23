@@ -1,7 +1,7 @@
 <Window x:Class="PotatoMusicPlayer.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="設定" Icon="pack://application:,,,/potato.png" Height="360" Width="560" WindowStartupLocation="CenterOwner"
+        Title="設定" Icon="pack://application:,,,/potato.png" Height="560" Width="640" WindowStartupLocation="CenterOwner"
         Style="{StaticResource AppWindowStyle}" ResizeMode="NoResize">
     <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="12" Background="{StaticResource BackgroundMediumBrush}">
         <Grid>
@@ -18,6 +18,8 @@
             <!-- 左: カテゴリ -->
             <ListBox x:Name="CategoryList" Grid.Column="0" Grid.Row="0" Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextLightBrush}" FontSize="12" SelectionChanged="CategoryList_SelectionChanged">
                 <ListBoxItem x:Name="GeneralCategoryItem" Tag="General">一般</ListBoxItem>
+                <ListBoxItem x:Name="HotkeysCategoryItem" Tag="Hotkeys">ホットキー</ListBoxItem>
+                <ListBoxItem x:Name="NumericCategoryItem" Tag="Numeric">数値</ListBoxItem>
                 <ListBoxItem x:Name="VolumeCategoryItem" Tag="Volume">音量</ListBoxItem>
                 <ListBoxItem x:Name="DisplayCategoryItem" Tag="Display">表示</ListBoxItem>
             </ListBox>
@@ -41,6 +43,107 @@
                             <ComboBoxItem x:Name="JapaneseLanguageItem" Content="Japanese (日本)" Tag="Japanese"/>
                             <ComboBoxItem x:Name="EnglishLanguageItem" Content="English (US)" Tag="EnglishUS"/>
                         </ComboBox>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Hotkeys -->
+                <StackPanel x:Name="HotkeysPanel" Visibility="Collapsed">
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="HotkeysTitleText" Text="ホットキー設定" FontSize="14" FontWeight="Bold" Grid.Column="0"
+                                   Margin="0,0,12,0" Foreground="{StaticResource TextLightBrush}"/>
+                        <TextBlock x:Name="HotkeysHintText" Text="ボタンを押してから使用するキーまたは組み合わせを入力してください。"
+                                   Grid.Column="1" VerticalAlignment="Center" Foreground="{StaticResource TextDimBrush}"
+                                   FontSize="11" TextWrapping="Wrap"/>
+                    </Grid>
+                    <ScrollViewer MaxHeight="380" VerticalScrollBarVisibility="Auto" Background="Transparent">
+                        <ScrollViewer.Resources>
+                            <Style TargetType="ScrollBar">
+                                <Setter Property="Width" Value="3"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ScrollBar">
+                                            <Grid Background="Transparent">
+                                                <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                                    <Track.DecreaseRepeatButton>
+                                                        <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                                                      Background="Transparent" BorderThickness="0" IsHitTestVisible="False"/>
+                                                    </Track.DecreaseRepeatButton>
+                                                    <Track.Thumb>
+                                                        <Thumb Background="#777777" BorderThickness="0" MinHeight="24">
+                                                            <Thumb.Template>
+                                                                <ControlTemplate TargetType="Thumb">
+                                                                    <Border Background="{TemplateBinding Background}" CornerRadius="3"/>
+                                                                </ControlTemplate>
+                                                            </Thumb.Template>
+                                                        </Thumb>
+                                                    </Track.Thumb>
+                                                    <Track.IncreaseRepeatButton>
+                                                        <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                                                      Background="Transparent" BorderThickness="0" IsHitTestVisible="False"/>
+                                                    </Track.IncreaseRepeatButton>
+                                                </Track>
+                                            </Grid>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ScrollViewer.Resources>
+                        <ItemsControl x:Name="HotKeyItemsControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,2">
+                                        <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="32"/>
+                                        <ColumnDefinition Width="32"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding DisplayName}" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
+                                                <Button Grid.Column="1" Content="{Binding}" Tag="{Binding}"
+                                                HorizontalAlignment="Left" MinWidth="150" Height="26"
+                                                Background="#4D4D4D" Foreground="#DCDCDC" BorderBrush="#666666"
+                                                Click="HotKeyButton_Click"/>
+                                        <Button Grid.Column="2" Content="↺" Tag="{Binding}" Width="26" Height="26"
+                                                Margin="4,0,0,0" Background="#4D4D4D" Foreground="#DCDCDC"
+                                                BorderBrush="#666666" ToolTip="デフォルトに戻す" Click="ResetHotKeyButton_Click"/>
+                                        <Button Grid.Column="3" Content="×" Tag="{Binding}" Width="26" Height="26"
+                                                Margin="4,0,0,0" Background="#4D4D4D" Foreground="#DCDCDC"
+                                                BorderBrush="#666666" ToolTip="ホットキーを解除" Click="ClearHotKeyButton_Click"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+
+                <!-- Numeric -->
+                <StackPanel x:Name="NumericPanel" Visibility="Collapsed">
+                    <TextBlock x:Name="NumericTitleText" Text="数値設定" FontSize="14" FontWeight="Bold" Margin="0,0,0,8" Foreground="{StaticResource TextLightBrush}"/>
+                    <Grid Margin="0,2">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ScrollVolumeLabelText" Text="スクロール音量(%)" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
+                        <TextBox x:Name="ScrollVolumeText" Grid.Column="1" Width="70" HorizontalAlignment="Left" Background="#3C3C3C" Foreground="#DCDCDC" BorderBrush="#666666"/>
+                        <TextBlock x:Name="HotkeyVolumeLabelText" Text="ホットキー音量(%)" Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
+                        <TextBox x:Name="HotkeyVolumeText" Grid.Column="3" Width="70" HorizontalAlignment="Left" Background="#3C3C3C" Foreground="#DCDCDC" BorderBrush="#666666"/>
+                    </Grid>
+                    <Grid Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
+                        <TextBlock x:Name="SkipDurationLabelText" Text="スキップ秒数" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
+                        <TextBox x:Name="SkipDurationText" Grid.Column="1" Width="70" HorizontalAlignment="Left" Background="#3C3C3C" Foreground="#DCDCDC" BorderBrush="#666666"/>
+                        <TextBlock x:Name="SmallSkipDurationLabelText" Text="スキップ秒数(小)" Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
+                        <TextBox x:Name="StepDurationText" Grid.Column="3" Width="70" HorizontalAlignment="Left" Background="#3C3C3C" Foreground="#DCDCDC" BorderBrush="#666666"/>
+                    </Grid>
+                    <Grid Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
+                        <TextBlock x:Name="SpeedStepLabelText" Text="速度上昇・低下(%)" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
+                        <TextBox x:Name="SpeedStepText" Grid.Column="1" Width="70" HorizontalAlignment="Left" Background="#3C3C3C" Foreground="#DCDCDC" BorderBrush="#666666"/>
+                        <TextBlock x:Name="SpeedResetLabelText" Text="速度リセット(%)" Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
+                        <TextBox x:Name="SpeedResetText" Grid.Column="3" Width="70" HorizontalAlignment="Left" Background="#3C3C3C" Foreground="#DCDCDC" BorderBrush="#666666"/>
                     </Grid>
                 </StackPanel>
 

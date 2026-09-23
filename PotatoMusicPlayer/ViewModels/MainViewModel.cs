@@ -305,7 +305,7 @@ namespace PotatoMusicPlayer.ViewModels
 
         public void ResetSpeed()
         {
-            _mediaService.SetPlaybackSpeed(1.0f);
+            _mediaService.SetPlaybackSpeed(_settingsService.GetSettings().SpeedResetPercent / 100.0f);
             UpdatePlaybackState();
         }
 

@@ -44,7 +44,9 @@ namespace PotatoMusicPlayer.Models
         public int SkipDurationSeconds { get; set; } = 5;  // 5秒スキップ
         public float StepDurationSeconds { get; set; } = 0.1f;  // 0.1秒ステップ
         public int VolumeChangePercent { get; set; } = 5;  // 5%ずつ
+        public int ScrollVolumeChangePercent { get; set; } = 1;  // マウスホイール
         public int SpeedChangePercent { get; set; } = 5;  // 5%ずつ
+        public int SpeedResetPercent { get; set; } = 100;
 
         // ファイル管理
         public List<string> RecentFiles { get; set; } = new List<string>();
@@ -151,8 +153,37 @@ namespace PotatoMusicPlayer.Models
                     Action = HotKeyAction.SpeedReset, 
                     Key = System.Windows.Input.Key.S,
                     DisplayName = "速度リセット(100%)"
+                },
+                new HotKeyBinding
+                {
+                    Action = HotKeyAction.ToggleLoopMode,
+                    Key = System.Windows.Input.Key.L,
+                    DisplayName = "ループ切り替え"
+                },
+                new HotKeyBinding
+                {
+                    Action = HotKeyAction.ToggleWaveform,
+                    Key = System.Windows.Input.Key.W,
+                    DisplayName = "波形表示切り替え"
                 }
             });
+        }
+
+        public void EnsureDefaultHotKeys()
+        {
+            if (HotKeyBindings == null || HotKeyBindings.Count == 0)
+            {
+                InitializeDefaultHotKeys();
+                return;
+            }
+
+            var defaults = new AppSettings();
+            defaults.InitializeDefaultHotKeys();
+            foreach (var binding in defaults.HotKeyBindings)
+            {
+                if (!HotKeyBindings.Exists(existing => existing.Action == binding.Action))
+                    HotKeyBindings.Add(binding);
+            }
         }
     }
 }

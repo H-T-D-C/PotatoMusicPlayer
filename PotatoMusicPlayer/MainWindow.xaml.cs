@@ -535,7 +535,9 @@ namespace PotatoMusicPlayer
         // 音量領域(アイコン・スライダー・テキスト)上でのマウススクロールで音量を1%ずつ調整
         private void VolumeArea_MouseWheel(object sender, MouseWheelEventArgs e)
         {
-            double delta = e.Delta > 0 ? 1.0 : -1.0;
+            double delta = e.Delta > 0
+                ? _viewModel.Settings.ScrollVolumeChangePercent
+                : -_viewModel.Settings.ScrollVolumeChangePercent;
             double newValue = Math.Clamp(VolumeSlider.Value + delta, VolumeSlider.Minimum, VolumeSlider.Maximum);
 
             if (Math.Abs(newValue - VolumeSlider.Value) > 0.001)
@@ -563,63 +565,43 @@ namespace PotatoMusicPlayer
 
         private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            // NOTE: これは「アプリがフォーカスされている場合」のみ有効なホットキー。
-            // グローバルホットキー（アプリ非フォーカス時にも効く）は HotKeyService で別途実装。
-            switch (e.Key)
+            // NOTE: これはアプリがフォーカスされている場合のホットキー。
+            Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+            var modifiers = Keyboard.Modifiers;
+            var binding = _viewModel.Settings.HotKeyBindings.Find(item =>
+                item.Key == key && item.Modifiers == modifiers);
+            if (binding == null)
+                return;
+
+            switch (binding.Action)
             {
-                case Key.Space:
-                    _viewModel.TogglePlayPause();
-                    e.Handled = true;
+                case HotKeyAction.PlayPause: _viewModel.TogglePlayPause(); break;
+                case HotKeyAction.Stop:
+                case HotKeyAction.GoToEnd: _viewModel.Stop(); break;
+                case HotKeyAction.SkipBackward5s: _viewModel.SkipBackward(); break;
+                case HotKeyAction.SkipForward5s: _viewModel.SkipForward(); break;
+                case HotKeyAction.VolumeUp: _viewModel.IncreaseVolume(); break;
+                case HotKeyAction.VolumeDown: _viewModel.DecreaseVolume(); break;
+                case HotKeyAction.Mute: _viewModel.ToggleMute(); break;
+                case HotKeyAction.StepBackward01s:
+                    _viewModel.SetPosition(Math.Max(0, _viewModel.PlaybackState.CurrentPosition.TotalSeconds - _viewModel.Settings.StepDurationSeconds));
                     break;
-                case Key.Left:
-                    _viewModel.SkipBackward();
-                    e.Handled = true;
+                case HotKeyAction.StepForward01s:
+                    _viewModel.SetPosition(_viewModel.PlaybackState.CurrentPosition.TotalSeconds + _viewModel.Settings.StepDurationSeconds);
                     break;
-                case Key.Right:
-                    _viewModel.SkipForward();
-                    e.Handled = true;
+                case HotKeyAction.GoToStart: _viewModel.SetPosition(0); break;
+                case HotKeyAction.SpeedDecrease: _viewModel.DecreaseSpeed(); break;
+                case HotKeyAction.SpeedIncrease: _viewModel.IncreaseSpeed(); break;
+                case HotKeyAction.SpeedReset: _viewModel.ResetSpeed(); break;
+                case HotKeyAction.ToggleLoopMode: _viewModel.CycleLoopMode(); break;
+                case HotKeyAction.ToggleWaveform:
+                    ShowWaveformMenuItem.IsChecked = !ShowWaveformMenuItem.IsChecked;
+                    ShowWaveform_Click(this, new RoutedEventArgs());
                     break;
-                case Key.Up:
-                    _viewModel.IncreaseVolume();
-                    e.Handled = true;
-                    break;
-                case Key.Down:
-                    _viewModel.DecreaseVolume();
-                    e.Handled = true;
-                    break;
-                case Key.M:
-                    _viewModel.ToggleMute();
-                    e.Handled = true;
-                    break;
-                case Key.Home:
-                    _viewModel.SetPosition(0);
-                    e.Handled = true;
-                    break;
-                case Key.End:
-                    _viewModel.Stop();
-                    e.Handled = true;
-                    break;
-                case Key.A:
-                    _viewModel.DecreaseSpeed();
-                    e.Handled = true;
-                    break;
-                case Key.D:
-                    _viewModel.IncreaseSpeed();
-                    e.Handled = true;
-                    break;
-                case Key.S:
-                    _viewModel.ResetSpeed();
-                    e.Handled = true;
-                    break;
-                case Key.OemComma:
-                    _viewModel.SetPosition(Math.Max(0, _viewModel.PlaybackState.CurrentPosition.TotalSeconds - 0.1));
-                    e.Handled = true;
-                    break;
-                case Key.OemPeriod:
-                    _viewModel.SetPosition(_viewModel.PlaybackState.CurrentPosition.TotalSeconds + 0.1);
-                    e.Handled = true;
-                    break;
+                default: return;
             }
+
+            e.Handled = true;
         }
     }
 }
