@@ -6,7 +6,7 @@
         Title="Potato Music Player"
         Width="900" Height="200"
         MinWidth="500" MinHeight="190"
-        Background="#1E1E1E"
+        Background="{DynamicResource BackgroundDarkBrush}"
         WindowStyle="None"
         ResizeMode="CanResizeWithGrip"
         AllowsTransparency="False">
@@ -44,7 +44,7 @@
         </shell:TaskbarItemInfo>
     </Window.TaskbarItemInfo>
 
-    <Border BorderBrush="#4A4A4A" BorderThickness="1">
+    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -63,7 +63,7 @@
 
 
             <!-- ============ タイトルバー(メニュー統合) ============ -->
-            <Grid Grid.Row="0" Background="#2D2D2D">
+            <Grid Grid.Row="0" Background="{DynamicResource BackgroundMediumBrush}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
@@ -71,7 +71,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <Menu Grid.Column="1" Background="Transparent" Foreground="#DCDCDC" FontSize="11"
+                <Menu Grid.Column="1" Background="Transparent" Foreground="{DynamicResource TextLightBrush}" FontSize="11"
                       VerticalAlignment="Center" Padding="4,2" HorizontalAlignment="Right">
                     <Menu.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -129,9 +129,9 @@
 
                 <!-- 最小化・閉じるボタン -->
                 <StackPanel Grid.Column="3" Orientation="Horizontal">
-                    <Button Content="—" Width="32" Height="26" Background="Transparent" Foreground="#DCDCDC"
+                    <Button Content="—" Width="32" Height="26" Background="Transparent" Foreground="{DynamicResource TextLightBrush}"
                             BorderThickness="0" Click="Minimize_Click"/>
-                    <Button Content="✕" Width="32" Height="26" Background="Transparent" Foreground="#DCDCDC"
+                    <Button Content="✕" Width="32" Height="26" Background="Transparent" Foreground="{DynamicResource TextLightBrush}"
                             BorderThickness="0" Click="Close_Click"/>
                 </StackPanel>
             </Grid>
@@ -139,7 +139,7 @@
             <!-- ============ メタデータ表示 ============ -->
             <StackPanel Grid.Row="1" Margin="8,4,8,2">
                         <TextBlock x:Name="TitleText" Text="再生するファイルがありません" Style="{StaticResource TitleTextStyle}"/>
-                <TextBlock x:Name="ArtistText" Text="" Foreground="#969696" FontSize="11"/>
+                <TextBlock x:Name="ArtistText" Text="" Foreground="{DynamicResource TextDimBrush}" FontSize="11"/>
             </StackPanel>
 
             <!-- ============ 波形表示エリア ============ -->
@@ -153,7 +153,7 @@
                 <TextBlock Grid.Column="0" Text="00:00" Foreground="Transparent"
                            FontFamily="Consolas" FontSize="10" Margin="0,0,6,0"/>
                 <Border x:Name="WaveformContainer" Grid.Column="1"
-                        Background="#2D2D2D" CornerRadius="2">
+                        Background="{DynamicResource WaveformBackgroundBrush}" CornerRadius="2">
                     <Grid>
                         <Canvas x:Name="WaveformCanvas" Background="Transparent" ClipToBounds="True"
                                 PreviewMouseLeftButtonDown="WaveformCanvas_PreviewMouseLeftButtonDown"
@@ -161,7 +161,7 @@
                                 PreviewMouseLeftButtonUp="WaveformCanvas_PreviewMouseLeftButtonUp"
                                 SizeChanged="WaveformCanvas_SizeChanged"/>
                         <TextBlock x:Name="WaveformProgressText" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Foreground="#969696" FontSize="11" Visibility="Collapsed" IsHitTestVisible="False"/>
+                                   Foreground="{DynamicResource TextDimBrush}" FontSize="11" Visibility="Collapsed" IsHitTestVisible="False"/>
                     </Grid>
                 </Border>
                 <TextBlock Grid.Column="2" Text="00:00" Foreground="Transparent"
@@ -186,21 +186,21 @@
 
                 <!-- 中央: 速度・ループ表示 -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock x:Name="SpeedText" Text="1.0x" Foreground="#969696" FontSize="10" Margin="4,0" VerticalAlignment="Center"/>
-                    <Button x:Name="LoopButton" Content="Loop: OFF" Background="Transparent" Foreground="#969696"
+                    <TextBlock x:Name="SpeedText" Text="1.0x" Foreground="{DynamicResource TextDimBrush}" FontSize="10" Margin="4,0" VerticalAlignment="Center"/>
+                    <Button x:Name="LoopButton" Content="Loop: OFF" Background="Transparent" Foreground="{DynamicResource TextDimBrush}"
                             BorderThickness="0" FontSize="10" Click="ToggleLoop_Click"/>
                 </StackPanel>
 
                 <!-- 右: 音量 -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                             MouseWheel="VolumeArea_MouseWheel">
-                    <Image x:Name="VolumeIcon" Source="pack://application:,,,/assets/speaker/speakers_3.png"
+                    <Image x:Name="VolumeIcon" Source="pack://application:,,,/Resources/Icons/speaker_dark_3.png"
                            Width="16" Height="16" Stretch="Uniform" Margin="0,0,4,0"
                            ToolTip="ミュート切り替え" Cursor="Hand"
                            MouseLeftButtonUp="VolumeIcon_MouseLeftButtonUp"/>
                     <Slider x:Name="VolumeSlider" Width="70" Height="18" Minimum="0" Maximum="200" Value="80"
                             VerticalAlignment="Center" ValueChanged="VolumeSlider_ValueChanged"/>
-                    <TextBlock x:Name="VolumeText" Text="80%" Foreground="#969696" FontSize="10" Margin="6,0,0,0" VerticalAlignment="Center" Width="26" TextAlignment="Right"/>
+                    <TextBlock x:Name="VolumeText" Text="80%" Foreground="{DynamicResource TextDimBrush}" FontSize="10" Margin="6,0,0,0" VerticalAlignment="Center" Width="26" TextAlignment="Right"/>
                 </StackPanel>
             </Grid>
 
@@ -212,7 +212,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock x:Name="CurrentTimeText" Grid.Column="0" Text="00:00" Foreground="#969696"
+                <TextBlock x:Name="CurrentTimeText" Grid.Column="0" Text="00:00" Foreground="{DynamicResource TextDimBrush}"
                            FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="0,0,6,0"/>
 
                 <Slider x:Name="SeekBar" Grid.Column="1" Minimum="0" Maximum="100" Value="0"
@@ -221,7 +221,7 @@
                         PreviewMouseMove="SeekBar_PreviewMouseMove"
                         PreviewMouseLeftButtonUp="SeekBar_PreviewMouseLeftButtonUp"/>
 
-                <TextBlock x:Name="TotalTimeText" Grid.Column="2" Text="00:00" Foreground="#969696"
+                <TextBlock x:Name="TotalTimeText" Grid.Column="2" Text="00:00" Foreground="{DynamicResource TextDimBrush}"
                            FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
             </Grid>
         </Grid>

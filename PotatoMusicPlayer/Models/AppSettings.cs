@@ -13,6 +13,13 @@ namespace PotatoMusicPlayer.Models
         Japanese = 1
     }
 
+    public enum ThemeMode
+    {
+        Light,
+        Dark,
+        System
+    }
+
     /// <summary>
     /// アプリケーション全体の設定
     /// </summary>
@@ -56,6 +63,7 @@ namespace PotatoMusicPlayer.Models
 
         // 言語・地域
         public Language Language { get; set; } = Language.EnglishUS;
+        public ThemeMode Theme { get; set; } = ThemeMode.System;
 
         // オーディオ設定
         public string AudioOutputDevice { get; set; } = "Default";

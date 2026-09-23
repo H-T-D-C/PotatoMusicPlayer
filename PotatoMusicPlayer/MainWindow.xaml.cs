@@ -24,6 +24,8 @@ namespace PotatoMusicPlayer
         {
             InitializeComponent();
 
+            ThemeService.ThemeChanged += ThemeService_ThemeChanged;
+
             _viewModel = new MainViewModel();
             DataContext = _viewModel;
             _languageService = new LanguageService(_viewModel.Settings.Language);
@@ -34,6 +36,7 @@ namespace PotatoMusicPlayer
 
             // ウィンドウ設定を復元
             RestoreWindowSettings();
+            UpdateVolumeIcon(VolumeSlider.Value);
 
             // ホットキー処理
             PreviewKeyDown += MainWindow_PreviewKeyDown;
@@ -42,6 +45,11 @@ namespace PotatoMusicPlayer
             UpdateRecentFilesMenu();
 
             Closing += MainWindow_Closing;
+        }
+
+        private void ThemeService_ThemeChanged(object sender, EventArgs e)
+        {
+            UpdateVolumeIcon(_viewModel?.PlaybackState?.IsMuted == true ? 0 : VolumeSlider?.Value ?? 0);
         }
 
         // ========== ウィンドウ設定の復元・保存 ==========
@@ -69,6 +77,7 @@ namespace PotatoMusicPlayer
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            ThemeService.ThemeChanged -= ThemeService_ThemeChanged;
             // ウィンドウの状態を保存
             var settings = _viewModel.Settings;
             settings.WindowWidth = Width;
@@ -558,7 +567,7 @@ namespace PotatoMusicPlayer
                 ? 0
                 : Math.Min(3, (int)Math.Ceiling(volumePercent / 50.0));
             VolumeIcon.Source = new System.Windows.Media.Imaging.BitmapImage(
-                new Uri($"pack://application:,,,/assets/speaker/speakers_{level}.png"));
+                new Uri($"pack://application:,,,/Resources/Icons/speaker_{(ThemeService.IsLightMode ? "light" : "dark")}_{level}.png"));
         }
 
         // ========== ホットキー処理(アプリ内フォーカス時) ==========

@@ -44,6 +44,19 @@
                             <ComboBoxItem x:Name="EnglishLanguageItem" Content="English (US)" Tag="EnglishUS"/>
                         </ComboBox>
                     </Grid>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ThemeLabelText" Text="テーマ" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextDimBrush}"/>
+                        <ComboBox x:Name="ThemeComboBox" Grid.Column="1" Width="180" HorizontalAlignment="Left"
+                                  Style="{StaticResource DarkComboBoxStyle}">
+                            <ComboBoxItem x:Name="LightThemeItem" Content="ライト" Tag="Light"/>
+                            <ComboBoxItem x:Name="DarkThemeItem" Content="ダーク" Tag="Dark"/>
+                            <ComboBoxItem x:Name="SystemThemeItem" Content="システム" Tag="System"/>
+                        </ComboBox>
+                    </Grid>
                 </StackPanel>
 
                 <!-- Hotkeys -->
@@ -106,14 +119,14 @@
                                         <TextBlock Text="{Binding DisplayName}" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
                                                 <Button Grid.Column="1" Content="{Binding}" Tag="{Binding}"
                                                 HorizontalAlignment="Left" MinWidth="150" Height="26"
-                                                Background="#4D4D4D" Foreground="#DCDCDC" BorderBrush="#666666"
+                                                Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"
                                                 Click="HotKeyButton_Click"/>
                                         <Button Grid.Column="2" Content="↺" Tag="{Binding}" Width="26" Height="26"
-                                                Margin="4,0,0,0" Background="#4D4D4D" Foreground="#DCDCDC"
-                                                BorderBrush="#666666" ToolTip="デフォルトに戻す" Click="ResetHotKeyButton_Click"/>
+                                                Margin="4,0,0,0" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}"
+                                                BorderBrush="{DynamicResource ControlBorderBrush}" ToolTip="デフォルトに戻す" Click="ResetHotKeyButton_Click"/>
                                         <Button Grid.Column="3" Content="×" Tag="{Binding}" Width="26" Height="26"
-                                                Margin="4,0,0,0" Background="#4D4D4D" Foreground="#DCDCDC"
-                                                BorderBrush="#666666" ToolTip="ホットキーを解除" Click="ClearHotKeyButton_Click"/>
+                                                Margin="4,0,0,0" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}"
+                                                BorderBrush="{DynamicResource ControlBorderBrush}" ToolTip="ホットキーを解除" Click="ClearHotKeyButton_Click"/>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -127,23 +140,23 @@
                     <Grid Margin="0,2">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
                         <TextBlock x:Name="ScrollVolumeLabelText" Text="スクロール音量(%)" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
-                        <TextBox x:Name="ScrollVolumeText" Grid.Column="1" Width="70" HorizontalAlignment="Left" Background="#3C3C3C" Foreground="#DCDCDC" BorderBrush="#666666"/>
+                        <TextBox x:Name="ScrollVolumeText" Grid.Column="1" Width="70" HorizontalAlignment="Left" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
                         <TextBlock x:Name="HotkeyVolumeLabelText" Text="ホットキー音量(%)" Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
-                        <TextBox x:Name="HotkeyVolumeText" Grid.Column="3" Width="70" HorizontalAlignment="Left" Background="#3C3C3C" Foreground="#DCDCDC" BorderBrush="#666666"/>
+                        <TextBox x:Name="HotkeyVolumeText" Grid.Column="3" Width="70" HorizontalAlignment="Left" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
                     </Grid>
                     <Grid Margin="0,6,0,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
                         <TextBlock x:Name="SkipDurationLabelText" Text="スキップ秒数" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
-                        <TextBox x:Name="SkipDurationText" Grid.Column="1" Width="70" HorizontalAlignment="Left" Background="#3C3C3C" Foreground="#DCDCDC" BorderBrush="#666666"/>
+                        <TextBox x:Name="SkipDurationText" Grid.Column="1" Width="70" HorizontalAlignment="Left" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
                         <TextBlock x:Name="SmallSkipDurationLabelText" Text="スキップ秒数(小)" Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
-                        <TextBox x:Name="StepDurationText" Grid.Column="3" Width="70" HorizontalAlignment="Left" Background="#3C3C3C" Foreground="#DCDCDC" BorderBrush="#666666"/>
+                        <TextBox x:Name="StepDurationText" Grid.Column="3" Width="70" HorizontalAlignment="Left" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
                     </Grid>
                     <Grid Margin="0,6,0,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
                         <TextBlock x:Name="SpeedStepLabelText" Text="速度上昇・低下(%)" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
-                        <TextBox x:Name="SpeedStepText" Grid.Column="1" Width="70" HorizontalAlignment="Left" Background="#3C3C3C" Foreground="#DCDCDC" BorderBrush="#666666"/>
+                        <TextBox x:Name="SpeedStepText" Grid.Column="1" Width="70" HorizontalAlignment="Left" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
                         <TextBlock x:Name="SpeedResetLabelText" Text="速度リセット(%)" Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
-                        <TextBox x:Name="SpeedResetText" Grid.Column="3" Width="70" HorizontalAlignment="Left" Background="#3C3C3C" Foreground="#DCDCDC" BorderBrush="#666666"/>
+                        <TextBox x:Name="SpeedResetText" Grid.Column="3" Width="70" HorizontalAlignment="Left" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
                     </Grid>
                 </StackPanel>
 
@@ -160,7 +173,8 @@
 
                         <TextBlock x:Name="MaxVolumeLabelText" Text="音量の上限 (%)" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
                         <Slider x:Name="MaxVolumeSlider" Grid.Column="1" Minimum="100" Maximum="400" TickFrequency="10" IsSnapToTickEnabled="False" Height="24" VerticalAlignment="Center"/>
-                        <TextBox x:Name="MaxVolumeText" Grid.Column="2" Width="52" Margin="8,0,0,0" VerticalContentAlignment="Center"/>
+                        <TextBox x:Name="MaxVolumeText" Grid.Column="2" Width="52" Margin="8,0,0,0" VerticalContentAlignment="Center"
+                                 Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
                     </Grid>
 
                     <TextBlock x:Name="VolumeExampleText" Text="(例: 200 = 200%)" Foreground="{StaticResource TextDimBrush}" FontSize="11" Margin="0,6,0,0"/>
@@ -178,9 +192,9 @@
 
             <!-- ボタン -->
             <StackPanel Orientation="Horizontal" Grid.Column="2" Grid.Row="1" HorizontalAlignment="Right" Margin="0,12,0,0">
-                <Button x:Name="CancelButton" Background="#4D4D4D" Foreground="#DCDCDC" Content="キャンセル" Width="88" Height="28" Margin="0,0,8,0" Click="CancelButton_Click"/>
-                <Button x:Name="ApplyButton" Background="#4D5D4D" Foreground="#DCDCDC" Content="適用" Width="88" Height="28" Margin="0,0,8,0" Click="ApplyButton_Click"/>
-                <Button x:Name="OkButton" Background="#4D4D4D" Foreground="#DCDCDC" Content="OK" Width="88" Height="28" Click="OkButton_Click"/>
+                <Button x:Name="CancelButton" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" Content="キャンセル" Width="88" Height="28" Margin="0,0,8,0" Click="CancelButton_Click"/>
+                <Button x:Name="ApplyButton" Background="{DynamicResource AccentGreenBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" Content="適用" Width="88" Height="28" Margin="0,0,8,0" Click="ApplyButton_Click"/>
+                <Button x:Name="OkButton" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" Content="OK" Width="88" Height="28" Click="OkButton_Click"/>
             </StackPanel>
         </Grid>
     </Border>

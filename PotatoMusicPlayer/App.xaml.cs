@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using PotatoMusicPlayer.Services;
 
 namespace PotatoMusicPlayer
 {
@@ -8,6 +9,7 @@ namespace PotatoMusicPlayer
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+            ThemeService.Apply(new SettingsService().GetSettings().Theme);
 
             // 未処理例外のハンドリング（アプリが落ちる前にログを残す）
             DispatcherUnhandledException += (s, args) =>

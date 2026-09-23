@@ -12,6 +12,10 @@
     <Color x:Key="AccentGreenHoverColor">#7DDB7D</Color>
     <Color x:Key="WaveformColor">#78B4FF</Color>
     <Color x:Key="ProgressBarColor">#64C864</Color>
+    <Color x:Key="ControlBackgroundColor">#3C3C3C</Color>
+    <Color x:Key="ControlBorderColor">#666666</Color>
+    <Color x:Key="MenuHoverColor">#3C3C3C</Color>
+    <Color x:Key="WaveformBackgroundColor">#252525</Color>
 
     <!-- ===================== ブラシ ===================== -->
     <SolidColorBrush x:Key="BackgroundDarkBrush" Color="{StaticResource BackgroundDarkColor}"/>
@@ -24,11 +28,15 @@
     <SolidColorBrush x:Key="AccentGreenHoverBrush" Color="{StaticResource AccentGreenHoverColor}"/>
     <SolidColorBrush x:Key="WaveformBrush" Color="{StaticResource WaveformColor}"/>
     <SolidColorBrush x:Key="ProgressBarBrush" Color="{StaticResource ProgressBarColor}"/>
+    <SolidColorBrush x:Key="ControlBackgroundBrush" Color="{StaticResource ControlBackgroundColor}"/>
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="{StaticResource ControlBorderColor}"/>
+    <SolidColorBrush x:Key="MenuHoverBrush" Color="{StaticResource MenuHoverColor}"/>
+    <SolidColorBrush x:Key="WaveformBackgroundBrush" Color="{StaticResource WaveformBackgroundColor}"/>
 
     <!-- ===================== 基本ウィンドウスタイル ===================== -->
     <Style x:Key="AppWindowStyle" TargetType="Window">
-        <Setter Property="Background" Value="{StaticResource BackgroundDarkBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource TextLightBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource BackgroundDarkBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
         <Setter Property="FontFamily" Value="Segoe UI"/>
         <Setter Property="FontSize" Value="12"/>
     </Style>
@@ -36,7 +44,7 @@
     <!-- ===================== ボタンスタイル(トランスポート用: 再生/停止等) ===================== -->
     <Style x:Key="TransportButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource TextLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="FontSize" Value="16"/>
         <Setter Property="Width" Value="32"/>
@@ -54,11 +62,11 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background"
-                                    Value="{StaticResource BackgroundLightBrush}"/>
+                                    Value="{DynamicResource MenuHoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background"
-                                    Value="{StaticResource AccentGreenBrush}"/>
+                                    Value="{DynamicResource AccentGreenBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -69,13 +77,13 @@
     <!-- ===================== メニュー(タイトルバー内) ===================== -->
     <Style x:Key="TitleBarMenuStyle" TargetType="Menu">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource TextLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
         <Setter Property="FontSize" Value="11"/>
     </Style>
 
     <Style x:Key="TitleBarMenuItemStyle" TargetType="MenuItem">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource TextLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
         <Setter Property="Padding" Value="8,4"/>
     </Style>
 
@@ -83,18 +91,18 @@
          これによりドロップダウン(サブメニュー)部分も含めてダークテーマになる。 -->
     <Style TargetType="Menu">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource TextLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
     </Style>
 
     <Style TargetType="Separator">
-        <Setter Property="Background" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="Margin" Value="4,2"/>
         <Setter Property="Height" Value="1"/>
     </Style>
 
     <Style TargetType="MenuItem">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource TextLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
         <Setter Property="Padding" Value="8,4"/>
         <Style.Triggers>
 
@@ -111,15 +119,15 @@
                                 <Popup x:Name="Popup" Placement="Bottom" AllowsTransparency="True"
                                        Focusable="False" PopupAnimation="Fade"
                                        IsOpen="{TemplateBinding IsSubmenuOpen}">
-                                    <Border Background="{StaticResource BackgroundMediumBrush}"
-                                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                    <Border Background="{DynamicResource BackgroundMediumBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                                         <StackPanel IsItemsHost="True" Orientation="Vertical" Margin="2"/>
                                     </Border>
                                 </Popup>
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsHighlighted" Value="True">
-                                    <Setter TargetName="Border" Property="Background" Value="{StaticResource BackgroundLightBrush}"/>
+                                    <Setter TargetName="Border" Property="Background" Value="{DynamicResource MenuHoverBrush}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -139,7 +147,7 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Path x:Name="CheckMark" Grid.Column="0" Visibility="Collapsed"
-                                          Data="M0,4 L3,7 L8,0" Stroke="{StaticResource AccentGreenBrush}"
+                                          Data="M0,4 L3,7 L8,0" Stroke="{DynamicResource AccentGreenBrush}"
                                           StrokeThickness="1.5" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                     <ContentPresenter Grid.Column="1" ContentSource="Header"
                                                        RecognizesAccessKey="True" VerticalAlignment="Center" Margin="4,2"/>
@@ -153,7 +161,7 @@
                                     <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Foreground" Value="{StaticResource TextDimBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -177,22 +185,22 @@
                                         <ContentPresenter Grid.Column="1" ContentSource="Header"
                                                            RecognizesAccessKey="True" VerticalAlignment="Center" Margin="4,2"/>
                                         <Path Grid.Column="2" Data="M0,0 L0,8 L4,4 Z"
-                                              Fill="{StaticResource TextLightBrush}"
+                                              Fill="{DynamicResource TextLightBrush}"
                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                     </Grid>
                                 </Border>
                                 <Popup x:Name="Popup" Placement="Right" AllowsTransparency="True"
                                        Focusable="False" PopupAnimation="Fade" HorizontalOffset="-4"
                                        IsOpen="{TemplateBinding IsSubmenuOpen}">
-                                    <Border Background="{StaticResource BackgroundMediumBrush}"
-                                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                    <Border Background="{DynamicResource BackgroundMediumBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                                         <StackPanel IsItemsHost="True" Orientation="Vertical" Margin="2"/>
                                     </Border>
                                 </Popup>
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsHighlighted" Value="True">
-                                    <Setter TargetName="Border" Property="Background" Value="{StaticResource BackgroundLightBrush}"/>
+                                    <Setter TargetName="Border" Property="Background" Value="{DynamicResource MenuHoverBrush}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -204,8 +212,8 @@
 
     <!-- ===================== コンボボックス(ダークテーマ用) ===================== -->
     <Style x:Key="DarkComboBoxItemStyle" TargetType="ComboBoxItem">
-        <Setter Property="Foreground" Value="{StaticResource TextLightBrush}"/>
-        <Setter Property="Background" Value="{StaticResource BackgroundMediumBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource BackgroundMediumBrush}"/>
         <Setter Property="Padding" Value="6,3"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -217,10 +225,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsHighlighted" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="{StaticResource BackgroundLightBrush}"/>
+                             <Setter TargetName="Border" Property="Background" Value="{DynamicResource MenuHoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="{StaticResource BackgroundLightBrush}"/>
+                             <Setter TargetName="Border" Property="Background" Value="{DynamicResource MenuHoverBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -229,9 +237,9 @@
     </Style>
 
     <Style x:Key="DarkComboBoxStyle" TargetType="ComboBox">
-        <Setter Property="Foreground" Value="{StaticResource TextLightBrush}"/>
-        <Setter Property="Background" Value="{StaticResource BackgroundLightBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="8,4"/>
         <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboBoxItemStyle}"/>
@@ -253,13 +261,13 @@
                                             BorderBrush="{TemplateBinding BorderBrush}"
                                             BorderThickness="{TemplateBinding BorderThickness}"
                                             CornerRadius="3">
-                                        <Path Data="M0,0 L4,4 L8,0" Stroke="{StaticResource TextLightBrush}"
+                                        <Path Data="M0,0 L4,4 L8,0" Stroke="{DynamicResource TextLightBrush}"
                                               StrokeThickness="1.5" HorizontalAlignment="Right"
                                               VerticalAlignment="Center" Margin="0,0,8,0"/>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Border" Property="Background" Value="{StaticResource BorderBrush}"/>
+                                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource BorderBrush}"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -279,8 +287,8 @@
                                AllowsTransparency="True"
                                Focusable="False"
                                PopupAnimation="Fade">
-                            <Border Background="{StaticResource BackgroundMediumBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
+                            <Border Background="{DynamicResource BackgroundMediumBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="3"
                                     MinWidth="{TemplateBinding ActualWidth}"
@@ -298,27 +306,27 @@
 
     <!-- ===================== スライダー(再生バー・音量) ===================== -->
     <Style x:Key="SeekBarSliderStyle" TargetType="Slider">
-        <Setter Property="Background" Value="{StaticResource BackgroundLightBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource ProgressBarBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource BackgroundLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ProgressBarBrush}"/>
         <Setter Property="Height" Value="16"/>
     </Style>
 
     <!-- ===================== テキストスタイル ===================== -->
     <Style x:Key="TitleTextStyle" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{StaticResource TextLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
     </Style>
 
     <Style x:Key="SubTextStyle" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{StaticResource TextDimBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
         <Setter Property="FontSize" Value="11"/>
         <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
     </Style>
 
     <Style x:Key="TimeTextStyle" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{StaticResource TextDimBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
         <Setter Property="FontSize" Value="10"/>
         <Setter Property="FontFamily" Value="Consolas"/>
     </Style>

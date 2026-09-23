@@ -61,6 +61,7 @@ namespace PotatoMusicPlayer.Views
             ShowWaveformCheck.IsChecked = _editableSettings.ShowWaveform;
 
             LanguageComboBox.SelectedIndex = _editableSettings.Language == PotatoMusicPlayer.Models.Language.Japanese ? 0 : 1;
+            ThemeComboBox.SelectedIndex = (int)_editableSettings.Theme;
 
             // default selection
             CategoryList.SelectedIndex = 0; // select "一般" by default
@@ -78,8 +79,14 @@ namespace PotatoMusicPlayer.Views
             {
                 _editableSettings.Language = language;
             }
+            if (ThemeComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem themeItem &&
+                Enum.TryParse(themeItem.Tag?.ToString(), out ThemeMode theme))
+            {
+                _editableSettings.Theme = theme;
+            }
             _settingsService.SaveSettings(_editableSettings);
             _languageService.Load(_editableSettings.Language);
+            ThemeService.Apply(_editableSettings.Theme);
             ApplyLanguage();
             return true;
         }
@@ -216,6 +223,10 @@ namespace PotatoMusicPlayer.Views
             NumericCategoryItem.Content = _languageService.Get("Settings.Numeric");
             GeneralTitleText.Text = _languageService.Get("Settings.GeneralTitle");
             LanguageLabelText.Text = _languageService.Get("Settings.Language");
+            ThemeLabelText.Text = _languageService.Get("Settings.Theme");
+            LightThemeItem.Content = _languageService.Get("Theme.Light");
+            DarkThemeItem.Content = _languageService.Get("Theme.Dark");
+            SystemThemeItem.Content = _languageService.Get("Theme.System");
             VolumeTitleText.Text = _languageService.Get("Settings.VolumeTitle");
             MaxVolumeLabelText.Text = _languageService.Get("Settings.MaxVolume");
             VolumeExampleText.Text = _languageService.Get("Settings.VolumeExample");
