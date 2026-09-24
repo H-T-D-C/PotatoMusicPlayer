@@ -4,32 +4,32 @@
         <ResourceDictionary Source="ThemeStyles.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 <!-- ===================== カラーパレット ===================== -->
-    <Color x:Key="SurfaceWindowColor">#1E1E1E</Color>
-    <Color x:Key="SurfacePanelColor">#2D2D2D</Color>
-    <Color x:Key="SurfaceRaisedColor">#3C3C3C</Color>
-    <Color x:Key="BorderDefaultColor">#4A4A4A</Color>
-    <Color x:Key="TextPrimaryColor">#DCDCDC</Color>
-    <Color x:Key="TextSecondaryColor">#969696</Color>
-    <Color x:Key="AccentGreenColor">#64C864</Color>
-    <Color x:Key="AccentGreenHoverColor">#7DDB7D</Color>
-    <Color x:Key="WaveformColor">#78B4FF</Color>
-    <Color x:Key="ProgressBarColor">#64C864</Color>
-    <Color x:Key="SurfaceControlColor">#3C3C3C</Color>
-    <Color x:Key="BorderControlColor">#666666</Color>
-    <Color x:Key="MenuHoverColor">#3C3C3C</Color>
-    <Color x:Key="WaveformBackgroundColor">#252525</Color>
-    <Color x:Key="CloseHoverColor">#7A2020</Color>
-    <Color x:Key="AccentBlueColor">#4A90E2</Color>
-    <Color x:Key="ApplyButtonColor">#3E7A43</Color>
-    <Color x:Key="MinimapWaveformColor">#828891</Color>
-    <Color x:Key="RangeOverlayColor">#46643C</Color>
-    <Color x:Key="RangeOverlayBorderColor">#64C864</Color>
-    <Color x:Key="PlaybackCursorColor">#FFFFFF</Color>
-    <Color x:Key="ScrollBarThumbColor">#777777</Color>
-    <Color x:Key="ResetButtonBackgroundColor">#E8E8E8</Color>
-    <Color x:Key="ResetButtonForegroundColor">#202020</Color>
-    <Color x:Key="AccentButtonForegroundColor">#FFFFFF</Color>
-    <Color x:Key="PendingIndicatorColor">#FFD700</Color>
+    <Color x:Key="SurfaceWindowColor">#F3F3F3</Color>
+    <Color x:Key="SurfacePanelColor">#E7E7E7</Color>
+    <Color x:Key="SurfaceRaisedColor">#D2D2D2</Color>
+    <Color x:Key="BorderDefaultColor">#BDBDBD</Color>
+    <Color x:Key="TextPrimaryColor">#252525</Color>
+    <Color x:Key="TextSecondaryColor">#4B4B4B</Color>
+    <Color x:Key="AccentGreenColor">#4B8F52</Color>
+    <Color x:Key="AccentGreenHoverColor">#63A96A</Color>
+    <Color x:Key="WaveformColor">#397AB3</Color>
+    <Color x:Key="ProgressBarColor">#4B8F52</Color>
+    <Color x:Key="SurfaceControlColor">#F2F2F2</Color>
+    <Color x:Key="BorderControlColor">#A8A8A8</Color>
+    <Color x:Key="MenuHoverColor">#D6DCE3</Color>
+    <Color x:Key="WaveformBackgroundColor">#E1E1E1</Color>
+    <Color x:Key="CloseHoverColor">#E85B5B</Color>
+    <Color x:Key="AccentBlueColor">#2F6FB0</Color>
+    <Color x:Key="ApplyButtonColor">#76B87A</Color>
+    <Color x:Key="MinimapWaveformColor">#555B63</Color>
+    <Color x:Key="RangeOverlayColor">#B9DDB4</Color>
+    <Color x:Key="RangeOverlayBorderColor">#72A96C</Color>
+    <Color x:Key="PlaybackCursorColor">#252525</Color>
+    <Color x:Key="ScrollBarThumbColor">#B7B7B7</Color>
+    <Color x:Key="ResetButtonBackgroundColor">#F0F0F0</Color>
+    <Color x:Key="ResetButtonForegroundColor">#252525</Color>
+    <Color x:Key="AccentButtonForegroundColor">#18351A</Color>
+    <Color x:Key="PendingIndicatorColor">#8A5A00</Color>
 
     <!-- ===================== ブラシ ===================== -->
     <SolidColorBrush x:Key="SurfaceWindowBrush" Color="{StaticResource SurfaceWindowColor}"/>
@@ -50,7 +50,7 @@
     <SolidColorBrush x:Key="AccentBlueBrush" Color="{StaticResource AccentBlueColor}"/>
     <SolidColorBrush x:Key="ApplyButtonBrush" Color="{StaticResource ApplyButtonColor}"/>
     <SolidColorBrush x:Key="MinimapWaveformBrush" Color="{StaticResource MinimapWaveformColor}"/>
-    <SolidColorBrush x:Key="RangeOverlayBrush" Color="{StaticResource RangeOverlayColor}" Opacity="0.2745"/>
+    <SolidColorBrush x:Key="RangeOverlayBrush" Color="{StaticResource RangeOverlayColor}" Opacity="0.45"/>
     <SolidColorBrush x:Key="RangeOverlayBorderBrush" Color="{StaticResource RangeOverlayBorderColor}"/>
     <SolidColorBrush x:Key="PlaybackCursorBrush" Color="{StaticResource PlaybackCursorColor}"/>
     <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="{StaticResource ScrollBarThumbColor}"/>

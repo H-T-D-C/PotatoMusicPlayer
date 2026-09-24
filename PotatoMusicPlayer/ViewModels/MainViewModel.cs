@@ -25,6 +25,9 @@ namespace PotatoMusicPlayer.ViewModels
         private float _volumeBeforeMute = 0.8f;
         private float? _volumeStateOverride;
         private bool _isWaveformFollowSuppressed;
+        private bool _isWaveformSeekPending;
+        private double _pendingWaveformSeekPosition;
+        private long _pendingWaveformSeekDeadline;
 
         // プロパティ
         private MediaFile _currentMediaFile;
@@ -358,6 +361,7 @@ namespace PotatoMusicPlayer.ViewModels
 
         public void SetPosition(double seconds)
         {
+            CancelPendingWaveformSeek();
             _isWaveformFollowSuppressed = false;
             _mediaService.SetPosition((long)(seconds * 1000));
         }
@@ -369,12 +373,13 @@ namespace PotatoMusicPlayer.ViewModels
 
         public void BeginManualWaveformNavigation()
         {
+            CancelPendingWaveformSeek();
             _isWaveformFollowSuppressed = true;
         }
 
         public void EndManualWaveformNavigation()
         {
-            _isWaveformFollowSuppressed = false;
+            _isWaveformFollowSuppressed = _isWaveformSeekPending;
         }
 
         public void ZoomIn()
@@ -427,9 +432,27 @@ namespace PotatoMusicPlayer.ViewModels
 
         public void ApplyWaveformSettings()
         {
+            var previousState = ZoomState;
+            double totalDuration = CurrentMediaFile?.Duration.TotalSeconds ?? 0;
+            double previousStart = previousState?.VisibleRangeStart ?? 0;
+            double previousEnd = previousState?.VisibleRangeEnd ?? 0;
+            bool canRestoreRange = previousState != null &&
+                previousState.TotalDuration > 0 && totalDuration > 0 &&
+                Math.Abs(previousState.TotalDuration - totalDuration) < 0.001 &&
+                previousState.VisibleRangeDuration > 0;
+
             _isWaveformFollowSuppressed = false;
             _waveformZoomService.Configure(Settings.WaveformZoom);
-            ResetWaveformZoom(CurrentMediaFile?.Duration.TotalSeconds ?? 0);
+
+            if (!canRestoreRange)
+            {
+                ResetWaveformZoom(totalDuration);
+                return;
+            }
+
+            var restoredState = _waveformZoomService.CreateInitialState(totalDuration);
+            _waveformZoomService.SetVisibleRange(restoredState, previousStart, previousEnd);
+            ZoomState = restoredState;
         }
 
         public void FollowWaveformPosition(double position)
@@ -439,6 +462,8 @@ namespace PotatoMusicPlayer.ViewModels
 
         private void ResetWaveformZoom(double totalDuration)
         {
+            CancelPendingWaveformSeek();
+            _isWaveformFollowSuppressed = false;
             double previousWidth = ZoomState?.CurrentZoomLevel ?? 0;
             double previousTotalDuration = ZoomState?.TotalDuration ?? 0;
             ZoomState = _waveformZoomService.CreateInitialState(totalDuration);
@@ -464,6 +489,7 @@ namespace PotatoMusicPlayer.ViewModels
 
         public void SeekAndPlay(double seconds)
         {
+            CancelPendingWaveformSeek();
             _isWaveformFollowSuppressed = false;
             _mediaService.PlayFromPosition((long)Math.Max(0, seconds * 1000));
             UpdatePlaybackState();
@@ -471,7 +497,11 @@ namespace PotatoMusicPlayer.ViewModels
 
         public void SeekAndPlayKeepingWaveformRange(double seconds)
         {
-            _mediaService.PlayFromPosition((long)Math.Max(0, seconds * 1000));
+            _pendingWaveformSeekPosition = Math.Max(0, seconds);
+            _pendingWaveformSeekDeadline = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 3;
+            _isWaveformSeekPending = true;
+            _isWaveformFollowSuppressed = true;
+            _mediaService.PlayFromPosition((long)(_pendingWaveformSeekPosition * 1000));
             UpdatePlaybackState();
         }
 
@@ -572,6 +602,7 @@ namespace PotatoMusicPlayer.ViewModels
                 _volumeStateOverride = null;
             }
             PlaybackState = state;
+            UpdatePendingWaveformSeek(state.CurrentPosition.TotalSeconds);
             if (ZoomState != null)
             {
                 ZoomState.CurrentPlaybackPosition = state.CurrentPosition.TotalSeconds;
@@ -580,6 +611,30 @@ namespace PotatoMusicPlayer.ViewModels
                 else if (wasPlaying && Settings.WaveformZoom.CursorMode == CursorDisplayMode.CenterFixed)
                     UpdateWaveformFollow(state.CurrentPosition.TotalSeconds);
             }
+        }
+
+        private void UpdatePendingWaveformSeek(double position)
+        {
+            if (!_isWaveformSeekPending)
+                return;
+
+            var zoomState = ZoomState;
+            bool targetReached = zoomState != null &&
+                Math.Abs(position - _pendingWaveformSeekPosition) <= 0.5 &&
+                position >= zoomState.VisibleRangeStart &&
+                position <= zoomState.VisibleRangeEnd;
+            bool timedOut = Stopwatch.GetTimestamp() >= _pendingWaveformSeekDeadline;
+            if (targetReached || timedOut)
+            {
+                CancelPendingWaveformSeek();
+                _isWaveformFollowSuppressed = false;
+            }
+        }
+
+        private void CancelPendingWaveformSeek()
+        {
+            _isWaveformSeekPending = false;
+            _pendingWaveformSeekDeadline = 0;
         }
 
         private void UpdateWaveformFollow(double position)

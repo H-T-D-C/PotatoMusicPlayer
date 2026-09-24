@@ -22,8 +22,7 @@ namespace PotatoMusicPlayer.Views
         {
             // XAMLとテーマリソースの読み込み完了前に既定の白背景が表示されないよう、
             // 現在のテーマに合う背景を先に設定する。描画後はスタイルの動的リソースへ戻す。
-            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(
-                ThemeService.IsLightMode ? "#F3F3F3" : "#1E1E1E"));
+            Background = Application.Current?.TryFindResource("SurfaceWindowBrush") as Brush;
             InitializeComponent();
             ContentRendered += SettingsWindow_ContentRendered;
             _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
@@ -421,6 +420,8 @@ namespace PotatoMusicPlayer.Views
             DisplayHintText.Text = _languageService.Get("Settings.DisplayHint");
             ShowWaveformLabelText.Text = _languageService.Get("Settings.ShowWaveform");
             ShowMinimapLabelText.Text = _languageService.Get("Settings.ShowMinimap");
+            WaveformDetailTitleText.Text = _languageService.Get("Settings.WaveformDetail");
+            MinimapDetailTitleText.Text = _languageService.Get("Settings.MinimapDetail");
             CursorModeLabelText.Text = _languageService.Get("Settings.CursorMode");
             CenterFixedCursorItem.Content = _languageService.Get("Settings.CursorMode.CenterFixed");
             LeftScrollCursorItem.Content = _languageService.Get("Settings.CursorMode.LeftScroll");
@@ -439,6 +440,7 @@ namespace PotatoMusicPlayer.Views
             SpeedStepLabelText.Text = _languageService.Get("Settings.SpeedStep");
             SpeedResetLabelText.Text = _languageService.Get("Settings.SpeedReset");
             MaxRecentFilesLabelText.Text = _languageService.Get("Settings.MaxRecentFiles");
+            TrackTransitionDelayLabelText.Text = _languageService.Get("Settings.TrackTransitionDelay");
             NumericTitleText.Text = _languageService.Get("Settings.NumericTitle");
             NumericHintText.Text = _languageService.Get("Settings.NumericHint");
             JapaneseLanguageItem.Content = _languageService.Get("Language.Japanese");
@@ -446,6 +448,8 @@ namespace PotatoMusicPlayer.Views
             CancelButton.Content = _languageService.Get("Common.Cancel");
             ApplyButton.Content = _languageService.Get("Common.Apply");
             OkButton.Content = _languageService.Get("Common.OK");
+            ResetWaveformDetailButton.Content = _languageService.Get("Common.Reset");
+            ResetMinimapDetailButton.Content = _languageService.Get("Common.Reset");
             UpdateHotKeyDisplayNames();
         }
 
@@ -493,7 +497,9 @@ namespace PotatoMusicPlayer.Views
             protected override void OnRender(DrawingContext drawingContext)
             {
                 var marker = new FormattedText("*", System.Globalization.CultureInfo.CurrentUICulture,
-                    FlowDirection.LeftToRight, MarkerTypeface, 14, Brushes.Gold, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+                    FlowDirection.LeftToRight, MarkerTypeface, 14,
+                    Application.Current?.TryFindResource("PendingIndicatorBrush") as Brush ?? Brushes.Transparent,
+                    VisualTreeHelper.GetDpi(this).PixelsPerDip);
                 drawingContext.DrawText(marker, new Point(-7, -10));
             }
         }

@@ -72,6 +72,14 @@ Loop: 全体は、プレイリスト未実装のため現在の曲を先頭か�
 | 設定サービス | JSON の読み書きと既定値 | `Services/SettingsService.cs` |
 | モデル | 再生状態、設定、ズーム状態 | `Models/` |
 | 設定画面 | 設定編集と未適用表示 | `Views/SettingsWindow.xaml(.cs)` |
+| テーマ | テーマ辞書の選択、OSテーマ変更への追従 | `Services/ThemeService.cs`、`Resources/Themes/` |
+
+### 4.1 テーマと配色リソース
+
+- Light／Dark はそれぞれ専用の配色辞書を使い、共通コントロールスタイルは `ThemeStyles.xaml` に置く。
+- UI の色は `Surface...`、`Text...`、`Border...`、アクセントなど用途を示すテーマリソースから取得する。波形・ミニマップのCanvas描画色もテーマリソースを使う。
+- System は Windows のアプリテーマ設定を参照し、起動中に設定が変わった場合も配色を切り替える。
+- ビルド時に Light／Dark のリソースキー一致、XAML/C#からのリソース参照、主要なコントラスト比、UI色の直書きを検査する。テーマ外の固定色を加える場合は検査規約の対象となる。
 
 ## 5. 非機能方針
 

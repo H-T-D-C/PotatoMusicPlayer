@@ -5,8 +5,8 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="Potato Music Player"
         Width="900" Height="200"
-        MinWidth="500" MinHeight="190"
-        Background="{DynamicResource BackgroundDarkBrush}"
+        MinWidth="500" MinHeight="230"
+        Background="{DynamicResource SurfaceWindowBrush}"
         WindowStyle="None"
         ResizeMode="CanResizeWithGrip"
         AllowsTransparency="False">
@@ -14,22 +14,22 @@
     <Window.Resources>
         <DrawingImage x:Key="TaskbarPreviousIcon">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="White" Geometry="M 1,1 L 1,15 L 4,15 L 4,1 Z M 6,8 L 15,1 L 15,15 Z"/>
+                <GeometryDrawing Brush="{DynamicResource TextPrimaryBrush}" Geometry="M 1,1 L 1,15 L 4,15 L 4,1 Z M 6,8 L 15,1 L 15,15 Z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="TaskbarPlayIcon">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="White" Geometry="M 3,1 L 15,8 L 3,15 Z"/>
+                <GeometryDrawing Brush="{DynamicResource TextPrimaryBrush}" Geometry="M 3,1 L 15,8 L 3,15 Z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="TaskbarPauseIcon">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="White" Geometry="M 2,1 L 6,1 L 6,15 L 2,15 Z M 10,1 L 14,1 L 14,15 L 10,15 Z"/>
+                <GeometryDrawing Brush="{DynamicResource TextPrimaryBrush}" Geometry="M 2,1 L 6,1 L 6,15 L 2,15 Z M 10,1 L 14,1 L 14,15 L 10,15 Z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="TaskbarNextIcon">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="White" Geometry="M 1,1 L 10,8 L 1,15 Z M 12,1 L 12,15 L 15,15 L 15,1 Z"/>
+                <GeometryDrawing Brush="{DynamicResource TextPrimaryBrush}" Geometry="M 1,1 L 10,8 L 1,15 Z M 12,1 L 12,15 L 15,15 L 15,1 Z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
     </Window.Resources>
@@ -44,7 +44,7 @@
         </shell:TaskbarItemInfo>
     </Window.TaskbarItemInfo>
 
-    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+    <Border BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -63,7 +63,7 @@
 
 
             <!-- ============ タイトルバー(メニュー統合) ============ -->
-            <Grid Grid.Row="0" Background="{DynamicResource BackgroundMediumBrush}">
+            <Grid Grid.Row="0" Background="{DynamicResource SurfacePanelBrush}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
@@ -71,7 +71,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <Menu Grid.Column="1" Background="Transparent" Foreground="{DynamicResource TextLightBrush}" FontSize="11"
+                <Menu Grid.Column="1" Background="Transparent" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="11"
                       VerticalAlignment="Center" Padding="4,2" HorizontalAlignment="Right">
                     <Menu.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -138,9 +138,9 @@
 
                 <!-- 最小化・閉じるボタン -->
                 <StackPanel Grid.Column="3" Orientation="Horizontal">
-                    <Button Content="—" Width="32" Height="26" Style="{StaticResource WindowControlButtonStyle}" Background="Transparent" Foreground="{DynamicResource TextLightBrush}"
+                    <Button Content="—" Width="32" Height="26" Style="{StaticResource WindowControlButtonStyle}" Background="Transparent" Foreground="{DynamicResource TextPrimaryBrush}"
                             BorderThickness="0" Click="Minimize_Click"/>
-                    <Button Content="✕" Width="32" Height="26" Style="{StaticResource CloseButtonStyle}" Background="Transparent" Foreground="{DynamicResource TextLightBrush}"
+                    <Button Content="✕" Width="32" Height="26" Style="{StaticResource CloseButtonStyle}" Background="Transparent" Foreground="{DynamicResource TextPrimaryBrush}"
                             BorderThickness="0" Click="Close_Click"/>
                 </StackPanel>
             </Grid>
@@ -148,7 +148,7 @@
             <!-- ============ メタデータ表示 ============ -->
             <StackPanel Grid.Row="1" Margin="8,4,8,2">
                         <TextBlock x:Name="TitleText" Text="再生するファイルがありません" Style="{StaticResource TitleTextStyle}"/>
-                <TextBlock x:Name="ArtistText" Text="" Foreground="{DynamicResource TextDimBrush}" FontSize="11"/>
+                <TextBlock x:Name="ArtistText" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
             </StackPanel>
 
             <!-- ============ 波形表示エリア ============ -->
@@ -171,11 +171,11 @@
                                 PreviewMouseLeftButtonUp="WaveformCanvas_PreviewMouseLeftButtonUp"
                                 SizeChanged="WaveformCanvas_SizeChanged"/>
                         <TextBlock x:Name="WaveformProgressText" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextDimBrush}" FontSize="11" Visibility="Collapsed" IsHitTestVisible="False"/>
+                                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Visibility="Collapsed" IsHitTestVisible="False"/>
                     </Grid>
                 </Border>
                 <TextBlock x:Name="WaveformRangeText" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-13,0,0"
-                           Foreground="{DynamicResource TextDimBrush}" FontSize="10" Cursor="Hand"
+                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" Cursor="Hand"
                            MouseLeftButtonUp="WaveformRangeText_MouseLeftButtonUp"/>
                 <TextBlock Grid.Column="2" Text="00:00" Foreground="Transparent"
                            FontFamily="Consolas" FontSize="10" Margin="6,0,0,0"/>
@@ -199,8 +199,8 @@
 
                 <!-- 中央: 速度・ループ表示 -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock x:Name="SpeedText" Text="1.0x" Foreground="{DynamicResource TextDimBrush}" FontSize="10" Margin="4,0" VerticalAlignment="Center"/>
-                    <Button x:Name="LoopButton" Content="Loop: OFF" Style="{StaticResource SettingsInputButtonStyle}" Background="Transparent" Foreground="{DynamicResource TextDimBrush}"
+                    <TextBlock x:Name="SpeedText" Text="1.0x" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" Margin="4,0" VerticalAlignment="Center"/>
+                    <Button x:Name="LoopButton" Content="Loop: OFF" Style="{StaticResource SettingsInputButtonStyle}" Background="Transparent" Foreground="{DynamicResource TextSecondaryBrush}"
                             BorderBrush="Transparent" BorderThickness="1" FontSize="10" Padding="4,1" Click="ToggleLoop_Click"/>
                 </StackPanel>
 
@@ -213,7 +213,7 @@
                            MouseLeftButtonUp="VolumeIcon_MouseLeftButtonUp"/>
                     <Slider x:Name="VolumeSlider" Width="70" Height="18" Minimum="0" Maximum="200" Value="80"
                             VerticalAlignment="Center" ValueChanged="VolumeSlider_ValueChanged"/>
-                    <TextBlock x:Name="VolumeText" Text="80%" Foreground="{DynamicResource TextDimBrush}" FontSize="10" Margin="6,0,0,0" VerticalAlignment="Center" Width="26" TextAlignment="Right"/>
+                    <TextBlock x:Name="VolumeText" Text="80%" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" Margin="6,0,0,0" VerticalAlignment="Center" Width="26" TextAlignment="Right"/>
                 </StackPanel>
             </Grid>
 
@@ -229,7 +229,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock x:Name="CurrentTimeText" Grid.Row="0" Grid.Column="0" Text="00:00" Foreground="{DynamicResource TextDimBrush}"
+                <TextBlock x:Name="CurrentTimeText" Grid.Row="0" Grid.Column="0" Text="00:00" Foreground="{DynamicResource TextSecondaryBrush}"
                            FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="0,0,6,0"/>
 
                 <Slider x:Name="SeekBar" Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="100" Value="0"
@@ -238,11 +238,11 @@
                         PreviewMouseMove="SeekBar_PreviewMouseMove"
                         PreviewMouseLeftButtonUp="SeekBar_PreviewMouseLeftButtonUp"/>
 
-                <TextBlock x:Name="TotalTimeText" Grid.Row="0" Grid.Column="2" Text="00:00" Foreground="{DynamicResource TextDimBrush}"
+                <TextBlock x:Name="TotalTimeText" Grid.Row="0" Grid.Column="2" Text="00:00" Foreground="{DynamicResource TextSecondaryBrush}"
                            FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
 
                 <Border x:Name="MinimapContainer" Grid.Row="1" Grid.Column="1" Margin="0,2,0,0"
-                        Background="#30343A" CornerRadius="2" ClipToBounds="True">
+                        Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="2" ClipToBounds="True">
                     <Canvas x:Name="MinimapCanvas" Background="Transparent" ClipToBounds="True"
                             PreviewMouseLeftButtonDown="MinimapCanvas_PreviewMouseLeftButtonDown"
                             PreviewMouseMove="MinimapCanvas_PreviewMouseMove"

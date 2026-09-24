@@ -1,6 +1,6 @@
 using System;
 using System.Windows;
-using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using PotatoMusicPlayer.Models;
 
@@ -11,61 +11,61 @@ namespace PotatoMusicPlayer.Services
     {
         public static bool IsLightMode { get; private set; }
         public static event EventHandler ThemeChanged;
+        private const string DarkThemeUri = "Resources/Themes/DarkTheme.xaml";
+        private const string LightThemeUri = "Resources/Themes/LightTheme.xaml";
+        private static ThemeMode _currentMode = ThemeMode.System;
+        private static bool _isWatchingSystemTheme;
+        private static bool? _appliedLightTheme;
 
         public static void Apply(ThemeMode mode)
         {
+            _currentMode = mode;
+            bool watchSystemTheme = mode == ThemeMode.System;
+            if (watchSystemTheme != _isWatchingSystemTheme)
+            {
+                if (watchSystemTheme)
+                    SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
+                else
+                    SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
+                _isWatchingSystemTheme = watchSystemTheme;
+            }
+
             bool useLight = mode == ThemeMode.Light || (mode == ThemeMode.System && IsSystemLight());
+            if (_appliedLightTheme == useLight)
+                return;
+
+            _appliedLightTheme = useLight;
             IsLightMode = useLight;
-            SetBrush("BackgroundDarkBrush", useLight ? "#F3F3F3" : "#1E1E1E");
-            SetBrush("BackgroundMediumBrush", useLight ? "#E7E7E7" : "#2D2D2D");
-            SetBrush("BackgroundLightBrush", useLight ? "#D2D2D2" : "#3C3C3C");
-            SetBrush("BorderBrush", useLight ? "#BDBDBD" : "#4A4A4A");
-            SetBrush("TextLightBrush", useLight ? "#252525" : "#DCDCDC");
-            SetBrush("TextDimBrush", useLight ? "#4B4B4B" : "#969696");
-            SetBrush("WaveformBrush", useLight ? "#397AB3" : "#78B4FF");
-            SetBrush("ControlBackgroundBrush", useLight ? "#F2F2F2" : "#3C3C3C");
-            SetBrush("ControlBorderBrush", useLight ? "#A8A8A8" : "#666666");
-            SetBrush("MenuHoverBrush", useLight ? "#D6DCE3" : "#3C3C3C");
-            SetBrush("WaveformBackgroundBrush", useLight ? "#E1E1E1" : "#252525");
-            SetBrush("CloseHoverBrush", useLight ? "#E85B5B" : "#7A2020");
-            SetBrush("AccentBlueBrush", useLight ? "#2F6FB0" : "#4A90E2");
-            SetBrush("ApplyButtonBrush", useLight ? "#4B8F52" : "#3E7A43");
+            var dictionaries = Application.Current?.Resources?.MergedDictionaries;
+            if (dictionaries != null)
+            {
+                string targetUri = useLight ? LightThemeUri : DarkThemeUri;
+                for (int index = dictionaries.Count - 1; index >= 0; index--)
+                {
+                    var source = dictionaries[index].Source?.OriginalString;
+                    if (source != null &&
+                        (source.EndsWith(DarkThemeUri, StringComparison.OrdinalIgnoreCase) ||
+                         source.EndsWith(LightThemeUri, StringComparison.OrdinalIgnoreCase)))
+                        dictionaries.RemoveAt(index);
+                }
+
+                dictionaries.Add(new ResourceDictionary { Source = new Uri(targetUri, UriKind.Relative) });
+            }
+
             ThemeChanged?.Invoke(null, EventArgs.Empty);
         }
 
-        private static void SetBrush(string key, string color)
+        private static void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
         {
-            var resources = Application.Current?.Resources;
-            SolidColorBrush brush = resources?[key] as SolidColorBrush;
-            if (brush == null && resources != null)
-            {
-                foreach (var dictionary in resources.MergedDictionaries)
-                {
-                    if (dictionary[key] is SolidColorBrush mergedBrush)
-                    {
-                        brush = mergedBrush;
-                        break;
-                    }
-                }
-            }
-
-            if (brush == null)
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher == null || dispatcher.HasShutdownStarted)
                 return;
 
-            var newColor = (Color)ColorConverter.ConvertFromString(color);
-            if (brush.IsFrozen)
+            dispatcher.BeginInvoke(new Action(() =>
             {
-                // XAML由来のFreezableは最適化のため凍結されている場合がある。
-                // その場合は変更可能な複製をリソースへ戻す。
-                var replacement = brush.Clone();
-                replacement.Color = newColor;
-                if (resources != null)
-                    resources[key] = replacement;
-            }
-            else
-            {
-                brush.Color = newColor;
-            }
+                if (_currentMode == ThemeMode.System)
+                    Apply(_currentMode);
+            }), DispatcherPriority.ApplicationIdle);
         }
 
         private static bool IsSystemLight()

@@ -14,20 +14,17 @@ namespace PotatoMusicPlayer.Views
         private readonly Brush _buttonBackground;
         private readonly Brush _buttonHoverBackground;
 
-        private InputPromptWindow(string title, string label, string initialValue, Func<string, bool> isValid)
+        private InputPromptWindow(string title, string label, string initialValue, Func<string, bool> isValid, LanguageService languageService)
         {
             Title = title;
             Width = 360;
             Height = 155;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             ResizeMode = ResizeMode.NoResize;
-            Background = new SolidColorBrush(ThemeService.IsLightMode ? Color.FromRgb(243, 243, 243) : Color.FromRgb(30, 30, 30));
-            Color foregroundColor = ThemeService.IsLightMode ? Color.FromRgb(37, 37, 37) : Color.FromRgb(220, 220, 220);
-            Color inputColor = ThemeService.IsLightMode ? Color.FromRgb(232, 232, 232) : Color.FromRgb(62, 62, 62);
-            Color borderColor = ThemeService.IsLightMode ? Color.FromRgb(47, 111, 176) : Color.FromRgb(74, 144, 226);
             _isValid = isValid;
-            _buttonBackground = new SolidColorBrush(inputColor);
-            _buttonHoverBackground = new SolidColorBrush(ThemeService.IsLightMode ? Color.FromRgb(218, 228, 239) : Color.FromRgb(76, 94, 112));
+            Background = GetThemeBrush("SurfaceWindowBrush");
+            _buttonBackground = GetThemeBrush("SurfaceControlBrush");
+            _buttonHoverBackground = GetThemeBrush("MenuHoverBrush");
 
             var panel = new Grid { Margin = new Thickness(16) };
             panel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -38,7 +35,7 @@ namespace PotatoMusicPlayer.Views
             var text = new TextBlock
             {
                 Text = label,
-                Foreground = new SolidColorBrush(foregroundColor)
+                Foreground = GetThemeBrush("TextPrimaryBrush")
             };
             Grid.SetRow(text, 0);
             panel.Children.Add(text);
@@ -47,9 +44,9 @@ namespace PotatoMusicPlayer.Views
             {
                 Text = initialValue,
                 Margin = new Thickness(0, 8, 0, 0),
-                Background = new SolidColorBrush(inputColor),
-                Foreground = new SolidColorBrush(foregroundColor),
-                BorderBrush = new SolidColorBrush(borderColor)
+                Background = GetThemeBrush("SurfaceControlBrush"),
+                Foreground = GetThemeBrush("TextPrimaryBrush"),
+                BorderBrush = GetThemeBrush("AccentBlueBrush")
             };
             Grid.SetRow(_input, 1);
             panel.Children.Add(_input);
@@ -57,15 +54,15 @@ namespace PotatoMusicPlayer.Views
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) };
             var cancel = new Button
             {
-                Content = "キャンセル", MinWidth = 76, IsCancel = true, Margin = new Thickness(0, 0, 8, 0),
-                Background = _buttonBackground, Foreground = new SolidColorBrush(foregroundColor),
+                Content = languageService?.Get("Common.Cancel") ?? "キャンセル", MinWidth = 76, IsCancel = true, Margin = new Thickness(0, 0, 8, 0),
+                Background = _buttonBackground, Foreground = GetThemeBrush("TextPrimaryBrush"),
                 BorderBrush = Brushes.Transparent
             };
             var ok = new Button
             {
-                Content = "OK", MinWidth = 76,
-                Background = new SolidColorBrush(ThemeService.IsLightMode ? Color.FromRgb(62, 112, 68) : Color.FromRgb(44, 92, 50)),
-                Foreground = Brushes.White,
+                Content = languageService?.Get("Common.OK") ?? "OK", Tag = "Accept", MinWidth = 76,
+                Background = GetThemeBrush("ApplyButtonBrush"),
+                Foreground = GetThemeBrush("AccentButtonForegroundBrush"),
                 BorderBrush = Brushes.Transparent
             };
             cancel.MouseEnter += Button_MouseEnter;
@@ -115,15 +112,20 @@ namespace PotatoMusicPlayer.Views
         private void Button_MouseLeave(object sender, MouseEventArgs e)
         {
             if (sender is Button button)
-                button.Background = button.Content?.ToString() == "OK"
-                    ? new SolidColorBrush(ThemeService.IsLightMode ? Color.FromRgb(62, 112, 68) : Color.FromRgb(44, 92, 50))
+                button.Background = button.Tag?.ToString() == "Accept"
+                    ? GetThemeBrush("ApplyButtonBrush")
                     : _buttonBackground;
         }
 
-        public static bool TryShow(Window owner, string title, string label, string initialValue, out string value,
-            Func<string, bool> isValid = null)
+        private static Brush GetThemeBrush(string key)
         {
-            var window = new InputPromptWindow(title, label, initialValue, isValid) { Owner = owner };
+            return Application.Current?.TryFindResource(key) as Brush ?? Brushes.Transparent;
+        }
+
+        public static bool TryShow(Window owner, string title, string label, string initialValue, out string value,
+            Func<string, bool> isValid = null, LanguageService languageService = null)
+        {
+            var window = new InputPromptWindow(title, label, initialValue, isValid, languageService) { Owner = owner };
             bool accepted = window.ShowDialog() == true;
             value = window._input.Text;
             return accepted;
