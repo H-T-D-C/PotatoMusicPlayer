@@ -13,7 +13,7 @@ This is a .NET 8 WPF desktop music player. The project file is
 - `Converters/`, `Utils/`, and `Resources/Themes/`: binding helpers, shared
   infrastructure, and XAML styling.
 
-`PotatoMusicPlayer_Specification.md` describes expected behavior. Build output
+`docs/Reference/PotatoMusicPlayer_Specification.md` describes expected behavior. Build output
 is generated in `bin/` and `obj/`; do not edit or commit it.
 
 ## Build, Test, and Development Commands
@@ -28,8 +28,10 @@ dotnet run --project PotatoMusicPlayer.csproj
 
 `restore` retrieves LibVLC and other NuGet dependencies. `build` compiles the
 Windows-only `net8.0-windows` app; `run` launches it. There is currently no
-test project, so validate UI and playback changes manually and add automated
-tests with new non-UI logic where practical.
+formal test project. After building, run
+`pwsh -NoProfile -File scripts/Test-WaveformZoom.ps1` for waveform zoom logic
+checks. Validate UI and playback changes manually and add automated tests with
+new non-UI logic where practical.
 
 ## Coding Style & Naming Conventions
 

@@ -1,10 +1,14 @@
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$modelSource = Get-Content -LiteralPath (Join-Path $projectRoot 'Models/WaveformZoomState.cs') -Raw
-$serviceSource = (Get-Content -LiteralPath (Join-Path $projectRoot 'Services/WaveformZoomService.cs') -Raw) -replace '(?m)^using .*;\r?\n', ''
-$settingsStub = 'namespace PotatoMusicPlayer.Models { public class WaveformZoomSettings { public double MinZoomLevel { get; set; } = 1; public double ZoomFactor { get; set; } = 2; } }'
-Add-Type -TypeDefinition ('using System; using PotatoMusicPlayer.Models;' + $modelSource + $settingsStub + $serviceSource)
+$assemblyPath = Join-Path $projectRoot 'bin/Debug/net8.0-windows/win-x64/PotatoMusicPlayer.dll'
+if (-not (Test-Path -LiteralPath $assemblyPath)) {
+    throw 'Build the application first: dotnet build PotatoMusicPlayer.csproj'
+}
+
+$assembly = [System.Reflection.Assembly]::LoadFrom($assemblyPath)
+$serviceType = $assembly.GetType('PotatoMusicPlayer.Services.WaveformZoomService', $true)
+$service = [Activator]::CreateInstance($serviceType)
 
 function Assert-Near([double] $actual, [double] $expected, [string] $message) {
     if ([Math]::Abs($actual - $expected) -gt 0.0001) {

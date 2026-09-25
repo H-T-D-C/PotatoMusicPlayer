@@ -129,7 +129,6 @@ namespace PotatoMusicPlayer.ViewModels
 
         // ========== Commands ==========
 
-        public ICommand OpenFileCommand { get; private set; }
         public ICommand PlayPauseCommand { get; private set; }
         public ICommand StopCommand { get; private set; }
         public ICommand SkipForwardCommand { get; private set; }
@@ -147,7 +146,6 @@ namespace PotatoMusicPlayer.ViewModels
 
         private void InitializeCommands()
         {
-            OpenFileCommand = new RelayCommand(_ => OpenFile());
             PlayPauseCommand = new RelayCommand(_ => TogglePlayPause());
             StopCommand = new RelayCommand(_ => Stop());
             SkipForwardCommand = new RelayCommand(_ => SkipForward());
@@ -160,21 +158,6 @@ namespace PotatoMusicPlayer.ViewModels
             ToggleLoopCommand = new RelayCommand(_ => CycleLoopMode());
             SetPositionCommand = new RelayCommand<double>(pos => SetPosition(pos));
             OpenSettingsCommand = new RelayCommand(_ => OpenSettings());
-        }
-
-        public void OpenFile()
-        {
-            IsLoading = true;
-            try
-            {
-                // ファイルダイアログを開く（WPF 実装時に）
-                StatusMessage = "Select an audio file...";
-                // TODO: FileDialog の実装
-            }
-            finally
-            {
-                IsLoading = false;
-            }
         }
 
         public async Task LoadAndPlayFileAsync(string filePath)

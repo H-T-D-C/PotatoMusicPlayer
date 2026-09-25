@@ -1,6 +1,6 @@
 # 中央固定モードの位置・範囲連携 調査結果・修正計画
 
-2026-09-25 のコード調査を反映した修正計画。第3〜6章は実装前の原因・計画を記録し、実施結果は第8〜9章に追記した。現行仕様は [PotatoMusicPlayer_Specification.md](../PotatoMusicPlayer_Specification.md) を参照する。この文書と [WaveformZoom_Specification.md](WaveformZoom_Specification.md) は実装時の記録として保存する。
+2026-09-25 のコード調査を反映した修正計画。第3〜6章は実装前の原因・計画を記録し、実施結果は第8章に追記する。確定仕様は [WaveformZoom_Specification.md](../Reference/WaveformZoom_Specification.md)、アプリ全体は [PotatoMusicPlayer_Specification.md](../Reference/PotatoMusicPlayer_Specification.md) を参照する。
 
 対象は中央固定モードの追従、シーク同期、波形・ミニマップ描画と、それに必要なコード整理。左流しモードは従来のページ追従・範囲中央軸ズームを維持し、共通処理の変更時に回帰確認する。テーマや波形生成方式の改修は対象外。
 
