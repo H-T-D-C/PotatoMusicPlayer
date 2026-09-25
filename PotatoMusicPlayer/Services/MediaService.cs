@@ -101,6 +101,8 @@ namespace PotatoMusicPlayer.Services
 
                 _mediaPlayer.Stop();
                 _mediaPlayer.Media = _currentMedia;
+                _pendingSeekPosition = null;
+                _positionSetAfterEnd = false;
 
                 return true;
             }
@@ -162,9 +164,14 @@ namespace PotatoMusicPlayer.Services
                     return;
                 }
 
+                bool wasPlaying = _mediaPlayer.IsPlaying;
+                // 一時停止状態からの再開では Time がすぐに確定しない場合がある。
+                // Playing 通知後にも目標位置を適用する。
+                _pendingSeekPosition = wasPlaying ? null : targetPosition;
                 _mediaPlayer.Time = targetPosition;
-                _positionSetAfterEnd = false;
-                _mediaPlayer.Play();
+                _positionSetAfterEnd = !wasPlaying;
+                if (!wasPlaying)
+                    _mediaPlayer.Play();
                 Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
             }
             catch (Exception ex)
@@ -218,6 +225,7 @@ namespace PotatoMusicPlayer.Services
                     _mediaPlayer.Stop();
                     _mediaPlayer.Time = 0;
                     _positionSetAfterEnd = false;
+                    _pendingSeekPosition = null;
                     Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
                 }
             }
@@ -236,16 +244,24 @@ namespace PotatoMusicPlayer.Services
             {
                 if (_mediaPlayer != null)
                 {
-                    // Ended状態ではTimeの変更だけでは再生可能状態に戻らないため、
-                    // シーク操作時も一度だけ停止してから指定位置を設定する。
+                    // Stopped/Ended では Time の変更が無視される。次の Playing で適用する。
+                    long targetPosition = Math.Max(0, milliseconds);
                     if (_mediaPlayer.State == VLCState.Ended ||
+                        _mediaPlayer.State == VLCState.Stopped ||
                         (_mediaPlayer.Length > 0 && _mediaPlayer.Time >= _mediaPlayer.Length))
                     {
-                        _mediaPlayer.Stop();
+                        _pendingSeekPosition = targetPosition;
                         _positionSetAfterEnd = true;
                     }
-                    _mediaPlayer.Time = milliseconds;
-                    Raise(() => PositionChanged?.Invoke(this, TimeSpan.FromMilliseconds(milliseconds)));
+                    else
+                    {
+                        // 一時停止中に受け付けた位置も、再開直後にもう一度確定する。
+                        _pendingSeekPosition = _mediaPlayer.State == VLCState.Paused
+                            ? targetPosition : null;
+                        _positionSetAfterEnd = _pendingSeekPosition.HasValue;
+                        _mediaPlayer.Time = targetPosition;
+                    }
+                    Raise(() => PositionChanged?.Invoke(this, TimeSpan.FromMilliseconds(targetPosition)));
                 }
             }
             catch (Exception ex)
@@ -394,8 +410,10 @@ namespace PotatoMusicPlayer.Services
 
             try
             {
-                state.State = _mediaPlayer.IsPlaying ? PlayState.Playing : PlayState.Paused;
-                state.CurrentPosition = TimeSpan.FromMilliseconds(_mediaPlayer.Time);
+                state.State = _mediaPlayer.IsPlaying ? PlayState.Playing :
+                    _mediaPlayer.State == VLCState.Stopped || _mediaPlayer.State == VLCState.Ended
+                        ? PlayState.Stopped : PlayState.Paused;
+                state.CurrentPosition = TimeSpan.FromMilliseconds(Math.Max(0, _mediaPlayer.Time));
                 var playerDuration = TimeSpan.FromMilliseconds(_mediaPlayer.Length);
                 state.Duration = playerDuration > TimeSpan.Zero ? playerDuration : _lastDuration;
                 // Stop()直後など、LibVLCが一時的に0を返す場合も希望音量を維持する。
@@ -450,15 +468,32 @@ namespace PotatoMusicPlayer.Services
 
         private void OnMediaPlaying(object sender, EventArgs e)
         {
-            if (!_pendingSeekPosition.HasValue)
+            // LibVLC のイベントスレッドからプレイヤーを操作しない。
+            // Stop がイベント終了を待つ間に Time の設定が走ると停止処理が固まり得る。
+            if (_syncContext != null)
+                _syncContext.Post(_ => ApplyPendingSeekAfterPlaying(), null);
+            else
+                ThreadPool.QueueUserWorkItem(_ => ApplyPendingSeekAfterPlaying());
+        }
+
+        private void ApplyPendingSeekAfterPlaying()
+        {
+            if (!_pendingSeekPosition.HasValue || _mediaPlayer == null)
                 return;
 
             long position = _pendingSeekPosition.Value;
             _pendingSeekPosition = null;
-            _mediaPlayer.Time = position;
-            _positionSetAfterEnd = false;
-            Raise(() => PositionChanged?.Invoke(this, TimeSpan.FromMilliseconds(position)));
-            Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
+            try
+            {
+                _mediaPlayer.Time = position;
+                _positionSetAfterEnd = false;
+                Raise(() => PositionChanged?.Invoke(this, TimeSpan.FromMilliseconds(position)));
+                Raise(() => PlaybackStateChanged?.Invoke(this, EventArgs.Empty));
+            }
+            catch (Exception ex)
+            {
+                Raise(() => ErrorOccurred?.Invoke(this, $"Seek after playing failed: {ex.Message}"));
+            }
         }
 
         private void OnMediaEncounteredError(object sender, EventArgs e)

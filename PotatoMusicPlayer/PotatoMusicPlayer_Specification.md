@@ -64,7 +64,7 @@ Loop: 全体は、プレイリスト未実装のため現在の曲を先頭か�
 
 | 層 | 主な責務 | 主なファイル |
 | --- | --- | --- |
-| 画面 | レイアウト、マウス操作、描画 | `MainWindow.xaml(.cs)` |
+| 画面 | レイアウト、マウス操作、描画 | `MainWindow.xaml(.cs)`、`MainWindow.Waveform.cs` |
 | ViewModel | 再生状態、設定反映、波形追従 | `ViewModels/MainViewModel.cs` |
 | 再生サービス | LibVLC のライフサイクル、再生状態 | `Services/MediaService.cs` |
 | 波形サービス | 音声からピーク値を非同期生成 | `Services/WaveformService.cs` |

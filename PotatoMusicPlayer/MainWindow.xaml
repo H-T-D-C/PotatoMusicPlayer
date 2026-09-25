@@ -169,6 +169,7 @@
                                 PreviewMouseLeftButtonDown="WaveformCanvas_PreviewMouseLeftButtonDown"
                                 PreviewMouseMove="WaveformCanvas_PreviewMouseMove"
                                 PreviewMouseLeftButtonUp="WaveformCanvas_PreviewMouseLeftButtonUp"
+                                LostMouseCapture="WaveformCanvas_LostMouseCapture"
                                 SizeChanged="WaveformCanvas_SizeChanged"/>
                         <TextBlock x:Name="WaveformProgressText" HorizontalAlignment="Center" VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Visibility="Collapsed" IsHitTestVisible="False"/>
@@ -247,6 +248,7 @@
                             PreviewMouseLeftButtonDown="MinimapCanvas_PreviewMouseLeftButtonDown"
                             PreviewMouseMove="MinimapCanvas_PreviewMouseMove"
                             PreviewMouseLeftButtonUp="MinimapCanvas_PreviewMouseLeftButtonUp"
+                            LostMouseCapture="MinimapCanvas_LostMouseCapture"
                             SizeChanged="MinimapCanvas_SizeChanged"/>
                 </Border>
             </Grid>
