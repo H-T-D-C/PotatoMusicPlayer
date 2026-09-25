@@ -44,8 +44,13 @@ namespace PotatoMusicPlayer.Services
                 {
                     string json = File.ReadAllText(_settingsFilePath);
                     var settings = JsonConvert.DeserializeObject<AppSettings>(json);
-                    
+
                     settings?.EnsureDefaultHotKeys();
+                    if (settings != null && settings.WaveformZoom == null)
+                        settings.WaveformZoom = new WaveformZoomSettings();
+                    // 旧設定ファイルには存在しない項目は既定値を適用する。
+                    if (settings?.WaveformZoom != null && !json.Contains("\"ProgressiveWaveform\"", StringComparison.Ordinal))
+                        settings.WaveformZoom.ProgressiveWaveform = true;
                     
                     return settings ?? CreateDefaultSettings();
                 }
@@ -80,6 +85,8 @@ namespace PotatoMusicPlayer.Services
         /// </summary>
         public AppSettings GetSettings()
         {
+            if (_currentSettings.WaveformZoom == null)
+                _currentSettings.WaveformZoom = new WaveformZoomSettings();
             return _currentSettings;
         }
 

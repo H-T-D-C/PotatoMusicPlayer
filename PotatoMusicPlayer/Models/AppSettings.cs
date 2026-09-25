@@ -20,6 +20,19 @@ namespace PotatoMusicPlayer.Models
         System
     }
 
+    public enum WaveformZoomUnit
+    {
+        Percentage,
+        Seconds
+    }
+
+    public enum CacheSizeUnit
+    {
+        KB,
+        MB,
+        GB
+    }
+
     /// <summary>
     /// アプリケーション全体の設定
     /// </summary>
@@ -43,9 +56,15 @@ namespace PotatoMusicPlayer.Models
         public bool ResetPlaybackSpeedOnStartup { get; set; } = false;
         public bool RememberLastPlaybackSpeed { get; set; } = true;
         public bool RememberLastVolume { get; set; } = true;
+        public bool RememberLastLoopMode { get; set; } = true;
+        public LoopMode DefaultLoopMode { get; set; } = LoopMode.Off;
 
         // 波形表示設定
         public bool ShowWaveform { get; set; } = true;
+        public bool RememberWaveformZoom { get; set; } = false;
+        public double DefaultWaveformZoomValue { get; set; } = 100;
+        public WaveformZoomUnit DefaultWaveformZoomUnit { get; set; } = WaveformZoomUnit.Percentage;
+        public WaveformZoomSettings WaveformZoom { get; set; } = new WaveformZoomSettings();
 
         // スキップ・操作値設定
         public int SkipDurationSeconds { get; set; } = 5;  // 5秒スキップ
@@ -54,6 +73,8 @@ namespace PotatoMusicPlayer.Models
         public int ScrollVolumeChangePercent { get; set; } = 1;  // マウスホイール
         public int SpeedChangePercent { get; set; } = 5;  // 5%ずつ
         public int SpeedResetPercent { get; set; } = 100;
+        // 曲末から次の再生（ループを含む）を開始するまでの待機時間
+        public double TrackTransitionDelaySeconds { get; set; } = 0;
 
         // ファイル管理
         public List<string> RecentFiles { get; set; } = new List<string>();
@@ -173,6 +194,20 @@ namespace PotatoMusicPlayer.Models
                     Action = HotKeyAction.ToggleWaveform,
                     Key = System.Windows.Input.Key.W,
                     DisplayName = "波形表示切り替え"
+                },
+                new HotKeyBinding
+                {
+                    Action = HotKeyAction.WaveformZoomIn,
+                    InputType = HotKeyInputType.MouseWheelUp,
+                    Modifiers = System.Windows.Input.ModifierKeys.Control,
+                    DisplayName = "波形を拡大"
+                },
+                new HotKeyBinding
+                {
+                    Action = HotKeyAction.WaveformZoomOut,
+                    InputType = HotKeyInputType.MouseWheelDown,
+                    Modifiers = System.Windows.Input.ModifierKeys.Control,
+                    DisplayName = "波形を縮小"
                 }
             });
         }
@@ -193,5 +228,22 @@ namespace PotatoMusicPlayer.Models
                     HotKeyBindings.Add(binding);
             }
         }
+    }
+
+    [Serializable]
+    public class WaveformZoomSettings
+    {
+        public float MinZoomLevel { get; set; } = 1.0f;
+        public float ZoomFactor { get; set; } = 2.0f;
+        public float ScrollStepSize { get; set; } = 0.2f;
+        public CursorDisplayMode CursorMode { get; set; } = CursorDisplayMode.CenterFixed;
+        public bool ShowMinimap { get; set; } = true;
+        public int MinimapHeight { get; set; } = 16;
+        public int HorizontalDetail { get; set; } = 100;
+        public int VerticalDetail { get; set; } = 100;
+        public bool ProgressiveWaveform { get; set; } = true;
+        public bool SaveWaveformCache { get; set; } = true;
+        public double WaveformCacheLimitValue { get; set; } = 512;
+        public CacheSizeUnit WaveformCacheLimitUnit { get; set; } = CacheSizeUnit.MB;
     }
 }

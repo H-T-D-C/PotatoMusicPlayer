@@ -24,6 +24,13 @@ namespace PotatoMusicPlayer.Services
         public event EventHandler<double> ProgressChanged;
 
         /// <summary>
+        /// 生成途中の部分波形の通知。バーは先頭から順に確定するため、
+        /// 配列の先頭側が有効なスナップショット（コピー）を渡す。
+        /// 購読者がいない場合はコピーを作らない。
+        /// </summary>
+        public event EventHandler<float[]> PartialWaveformReady;
+
+        /// <summary>
         /// 指定したバー数の振幅データ（0.0 ~ 1.0の正規化された値）を非同期生成する。
         /// 動画編集ソフト風の「音量レベルの棒グラフ」表示を想定し、
         /// 各バーはその区間内のピーク振幅（絶対値の最大）を表す。
@@ -37,32 +44,37 @@ namespace PotatoMusicPlayer.Services
 
         private float[] GenerateWaveform(string filePath, int barCount)
         {
-            var result = new float[barCount];
-
+            float[] result = Array.Empty<float>();
             try
             {
                 using (var reader = CreateReader(filePath))
                 {
                     if (reader == null)
-                        return result;
+                        return Array.Empty<float>();
 
                     var sampleProvider = reader.ToSampleProvider();
                     long totalSamples = reader.Length / (reader.WaveFormat.BitsPerSample / 8) / reader.WaveFormat.Channels;
 
                     if (totalSamples <= 0)
-                        return result;
+                        return Array.Empty<float>();
 
-                    long samplesPerBar = Math.Max(1, totalSamples / barCount);
+                    int actualBarCount = (int)Math.Min(barCount, totalSamples);
+                    result = new float[actualBarCount];
                     int channels = reader.WaveFormat.Channels;
 
-                    // 読み込みバッファ（1バーぶんのサンプル×チャンネル数）
-                    int bufferSize = (int)Math.Min(samplesPerBar * channels, 1_000_000);
+                    // 読み込みバッファは一定サイズにし、バーごとの終端は総サンプル数から
+                    // 求める。固定の samplesPerBar では割り切れない末尾のサンプルを
+                    // 読み残し、音がない終端にも手前の波形が引き延ばされてしまう。
+                    const int bufferSize = 65_536;
                     var buffer = new float[bufferSize];
+                    int progressInterval = Math.Max(1, actualBarCount / 100);
+                    long framesRead = 0;
 
-                    for (int bar = 0; bar < barCount; bar++)
+                    for (int bar = 0; bar < actualBarCount; bar++)
                     {
                         float peak = 0f;
-                        long samplesNeeded = samplesPerBar * channels;
+                        long endFrame = (long)(bar + 1) * totalSamples / actualBarCount;
+                        long samplesNeeded = Math.Max(0, endFrame - framesRead) * channels;
                         long samplesRead = 0;
 
                         while (samplesRead < samplesNeeded)
@@ -81,17 +93,23 @@ namespace PotatoMusicPlayer.Services
                             samplesRead += read;
                         }
 
+                        framesRead += samplesRead / channels;
+
                         result[bar] = Math.Clamp(peak, 0f, 1f);
 
-                        if (bar % 20 == 0)
-                            ProgressChanged?.Invoke(this, (double)bar / barCount);
+                        if (bar % progressInterval == 0)
+                        {
+                            ProgressChanged?.Invoke(this, (double)bar / actualBarCount);
+                            if (PartialWaveformReady != null)
+                                PartialWaveformReady.Invoke(this, (float[])result.Clone());
+                        }
                     }
                 }
             }
             catch (Exception)
             {
                 // 波形生成に失敗しても再生自体には影響させない（空データを返すのみ）
-                return new float[barCount];
+                return Array.Empty<float>();
             }
 
             ProgressChanged?.Invoke(this, 1.0);

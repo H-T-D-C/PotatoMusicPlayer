@@ -38,4 +38,8 @@
     <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>
 
+  <Target Name="ValidateThemeResources" BeforeTargets="BeforeBuild">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\scripts\Validate-ThemeResources.ps1&quot;" />
+  </Target>
+
 </Project>

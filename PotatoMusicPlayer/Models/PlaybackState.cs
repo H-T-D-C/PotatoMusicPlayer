@@ -56,15 +56,5 @@ namespace PotatoMusicPlayer.Models
             _ => "Unknown"
         };
 
-        /// <summary>
-        /// ループモード文字列
-        /// </summary>
-        public string LoopModeDisplayString => LoopMode switch
-        {
-            LoopMode.Off => "OFF",
-            LoopMode.One => "1曲",
-            LoopMode.All => "全体",
-            _ => "OFF"
-        };
     }
 }

@@ -39,7 +39,7 @@ namespace PotatoMusicPlayer
             catch (Exception) { /* ignore UI update failures */ }
         }
 
-        private async void RecentFileMenuItem_Click(object? sender, RoutedEventArgs e)
+        private async void RecentFileMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is MenuItem mi && mi.Tag is string path)
             {
@@ -48,7 +48,7 @@ namespace PotatoMusicPlayer
             }
         }
 
-        private void ClearRecentFiles_Click(object? sender, RoutedEventArgs e)
+        private void ClearRecentFiles_Click(object sender, RoutedEventArgs e)
         {
             try
             {

@@ -1,9 +1,9 @@
 <Window x:Class="PotatoMusicPlayer.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="設定" Icon="pack://application:,,,/potato.png" Height="560" Width="640" WindowStartupLocation="CenterOwner"
-        Style="{StaticResource AppWindowStyle}" ResizeMode="NoResize">
-    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="12" Background="{StaticResource BackgroundMediumBrush}">
+        Title="設定" Icon="pack://application:,,,/potato.png" Height="640" Width="640" WindowStartupLocation="CenterOwner"
+        Style="{StaticResource AppWindowStyle}" ResizeMode="NoResize" Opacity="0">
+    <Border BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" Padding="12" Background="{DynamicResource SurfacePanelBrush}">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="160"/>
@@ -16,30 +16,33 @@
             </Grid.RowDefinitions>
 
             <!-- 左: カテゴリ -->
-            <ListBox x:Name="CategoryList" Grid.Column="0" Grid.Row="0" Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextLightBrush}" FontSize="12" SelectionChanged="CategoryList_SelectionChanged">
+            <ListBox x:Name="CategoryList" Grid.Column="0" Grid.Row="0" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" SelectionChanged="CategoryList_SelectionChanged">
                 <ListBoxItem x:Name="GeneralCategoryItem" Tag="General">一般</ListBoxItem>
                 <ListBoxItem x:Name="HotkeysCategoryItem" Tag="Hotkeys">ホットキー</ListBoxItem>
                 <ListBoxItem x:Name="NumericCategoryItem" Tag="Numeric">数値</ListBoxItem>
-                <ListBoxItem x:Name="VolumeCategoryItem" Tag="Volume">音量</ListBoxItem>
                 <ListBoxItem x:Name="DisplayCategoryItem" Tag="Display">表示</ListBoxItem>
             </ListBox>
 
             <!-- 区切り -->
-            <Border Grid.Column="1" Grid.Row="0" Background="{StaticResource BorderBrush}" Width="1"/>
+            <Border Grid.Column="1" Grid.Row="0" Background="{DynamicResource BorderDefaultBrush}" Width="1"/>
 
             <!-- 右: 設定パネル -->
             <Grid Grid.Column="2" Grid.Row="0" Margin="8,0,0,0">
                 <!-- General -->
                 <StackPanel x:Name="GeneralPanel" Visibility="Collapsed">
-                    <TextBlock x:Name="GeneralTitleText" Text="一般設定" FontSize="14" FontWeight="Bold" Margin="0,0,0,8" Foreground="{StaticResource TextLightBrush}"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock x:Name="GeneralTitleText" Text="一般設定" FontSize="14" FontWeight="Bold" Grid.Column="0" Margin="0,0,12,0" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock x:Name="GeneralHintText" Text="言語、テーマ、起動時の復元を設定します。" Grid.Column="1" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap"/>
+                    </Grid>
                     <Grid Margin="0,4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="160"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="LanguageLabelText" Text="言語" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextDimBrush}"/>
+                        <TextBlock x:Name="LanguageLabelText" Text="言語" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <ComboBox x:Name="LanguageComboBox" Grid.Column="1" Width="180" HorizontalAlignment="Left"
-                                  Style="{StaticResource DarkComboBoxStyle}">
+                                  Style="{StaticResource ComboBoxStyle}">
                             <ComboBoxItem x:Name="JapaneseLanguageItem" Content="Japanese (日本)" Tag="Japanese"/>
                             <ComboBoxItem x:Name="EnglishLanguageItem" Content="English (US)" Tag="EnglishUS"/>
                         </ComboBox>
@@ -49,13 +52,38 @@
                             <ColumnDefinition Width="160"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="ThemeLabelText" Text="テーマ" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextDimBrush}"/>
+                        <TextBlock x:Name="ThemeLabelText" Text="テーマ" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <ComboBox x:Name="ThemeComboBox" Grid.Column="1" Width="180" HorizontalAlignment="Left"
-                                  Style="{StaticResource DarkComboBoxStyle}">
+                                  Style="{StaticResource ComboBoxStyle}">
                             <ComboBoxItem x:Name="LightThemeItem" Content="ライト" Tag="Light"/>
                             <ComboBoxItem x:Name="DarkThemeItem" Content="ダーク" Tag="Dark"/>
                             <ComboBoxItem x:Name="SystemThemeItem" Content="システム" Tag="System"/>
                         </ComboBox>
+                    </Grid>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox x:Name="RememberLastVolumeCheck" Grid.Column="1" Content="前回の音量を復元" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    </Grid>
+                    <Grid Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox x:Name="RememberLastSpeedCheck" Grid.Column="1" Content="前回の再生速度を復元" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    </Grid>
+                    <Grid Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox x:Name="RememberLastLoopCheck" Grid.Column="1" Content="前回のループモードを復元" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    </Grid>
+                    <Grid Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <CheckBox x:Name="RememberWaveformZoomCheck" Grid.Column="1" Content="波形の拡大率を復元" Foreground="{DynamicResource TextPrimaryBrush}"/>
                     </Grid>
                 </StackPanel>
 
@@ -67,12 +95,12 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock x:Name="HotkeysTitleText" Text="ホットキー設定" FontSize="14" FontWeight="Bold" Grid.Column="0"
-                                   Margin="0,0,12,0" Foreground="{StaticResource TextLightBrush}"/>
+                                   Margin="0,0,12,0" Foreground="{DynamicResource TextPrimaryBrush}"/>
                         <TextBlock x:Name="HotkeysHintText" Text="ボタンを押してから使用するキーまたは組み合わせを入力してください。"
-                                   Grid.Column="1" VerticalAlignment="Center" Foreground="{StaticResource TextDimBrush}"
+                                   Grid.Column="1" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontSize="11" TextWrapping="Wrap"/>
                     </Grid>
-                    <ScrollViewer MaxHeight="380" VerticalScrollBarVisibility="Auto" Background="Transparent">
+                    <ScrollViewer MaxHeight="500" VerticalScrollBarVisibility="Auto" Background="Transparent">
                         <ScrollViewer.Resources>
                             <Style TargetType="ScrollBar">
                                 <Setter Property="Width" Value="3"/>
@@ -87,7 +115,7 @@
                                                                       Background="Transparent" BorderThickness="0" IsHitTestVisible="False"/>
                                                     </Track.DecreaseRepeatButton>
                                                     <Track.Thumb>
-                                                        <Thumb Background="#777777" BorderThickness="0" MinHeight="24">
+                                                        <Thumb Background="{DynamicResource ScrollBarThumbBrush}" BorderThickness="0" MinHeight="24">
                                                             <Thumb.Template>
                                                                 <ControlTemplate TargetType="Thumb">
                                                                     <Border Background="{TemplateBinding Background}" CornerRadius="3"/>
@@ -116,17 +144,17 @@
                                         <ColumnDefinition Width="32"/>
                                         <ColumnDefinition Width="32"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding DisplayName}" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
+                                        <TextBlock Text="{Binding DisplayName}" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
                                                 <Button Grid.Column="1" Content="{Binding}" Tag="{Binding}"
                                                 HorizontalAlignment="Left" MinWidth="150" Height="26"
-                                                Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"
-                                                Click="HotKeyButton_Click"/>
+                                                Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"
+                                                Style="{StaticResource SettingsInputButtonStyle}" Click="HotKeyButton_Click"/>
                                         <Button Grid.Column="2" Content="↺" Tag="{Binding}" Width="26" Height="26"
-                                                Margin="4,0,0,0" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}"
-                                                BorderBrush="{DynamicResource ControlBorderBrush}" ToolTip="デフォルトに戻す" Click="ResetHotKeyButton_Click"/>
+                                                Margin="4,0,0,0" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}"
+                                                BorderBrush="{DynamicResource BorderControlBrush}" Style="{StaticResource SettingsInputButtonStyle}" ToolTip="デフォルトに戻す" Click="ResetHotKeyButton_Click"/>
                                         <Button Grid.Column="3" Content="×" Tag="{Binding}" Width="26" Height="26"
-                                                Margin="4,0,0,0" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}"
-                                                BorderBrush="{DynamicResource ControlBorderBrush}" ToolTip="ホットキーを解除" Click="ClearHotKeyButton_Click"/>
+                                                Margin="4,0,0,0" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}"
+                                                BorderBrush="{DynamicResource BorderControlBrush}" Style="{StaticResource SettingsInputButtonStyle}" ToolTip="ホットキーを解除" Click="ClearHotKeyButton_Click"/>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -136,65 +164,101 @@
 
                 <!-- Numeric -->
                 <StackPanel x:Name="NumericPanel" Visibility="Collapsed">
-                    <TextBlock x:Name="NumericTitleText" Text="数値設定" FontSize="14" FontWeight="Bold" Margin="0,0,0,8" Foreground="{StaticResource TextLightBrush}"/>
-                    <Grid Margin="0,2">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
-                        <TextBlock x:Name="ScrollVolumeLabelText" Text="スクロール音量(%)" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
-                        <TextBox x:Name="ScrollVolumeText" Grid.Column="1" Width="70" HorizontalAlignment="Left" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
-                        <TextBlock x:Name="HotkeyVolumeLabelText" Text="ホットキー音量(%)" Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
-                        <TextBox x:Name="HotkeyVolumeText" Grid.Column="3" Width="70" HorizontalAlignment="Left" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock x:Name="NumericTitleText" Text="数値設定" FontSize="14" FontWeight="Bold" Grid.Column="0" Margin="0,0,12,0" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock x:Name="NumericHintText" Text="再生、音量、履歴に使う数値を設定します。" Grid.Column="1" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap"/>
                     </Grid>
-                    <Grid Margin="0,6,0,0">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
-                        <TextBlock x:Name="SkipDurationLabelText" Text="スキップ秒数" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
-                        <TextBox x:Name="SkipDurationText" Grid.Column="1" Width="70" HorizontalAlignment="Left" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
-                        <TextBlock x:Name="SmallSkipDurationLabelText" Text="スキップ秒数(小)" Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
-                        <TextBox x:Name="StepDurationText" Grid.Column="3" Width="70" HorizontalAlignment="Left" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
-                    </Grid>
-                    <Grid Margin="0,6,0,0">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/><ColumnDefinition Width="190"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
-                        <TextBlock x:Name="SpeedStepLabelText" Text="速度上昇・低下(%)" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
-                        <TextBox x:Name="SpeedStepText" Grid.Column="1" Width="70" HorizontalAlignment="Left" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
-                        <TextBlock x:Name="SpeedResetLabelText" Text="速度リセット(%)" Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
-                        <TextBox x:Name="SpeedResetText" Grid.Column="3" Width="70" HorizontalAlignment="Left" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
-                    </Grid>
-                </StackPanel>
-
-                <!-- Volume -->
-                <StackPanel x:Name="VolumePanel" Visibility="Collapsed">
-                    <TextBlock x:Name="VolumeTitleText" Text="音量設定" FontSize="14" FontWeight="Bold" Margin="0,0,0,8" Foreground="{StaticResource TextLightBrush}"/>
-
-                    <Grid Margin="0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="160"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="60"/>
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock x:Name="MaxVolumeLabelText" Text="音量の上限 (%)" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
-                        <Slider x:Name="MaxVolumeSlider" Grid.Column="1" Minimum="100" Maximum="400" TickFrequency="10" IsSnapToTickEnabled="False" Height="24" VerticalAlignment="Center"/>
-                        <TextBox x:Name="MaxVolumeText" Grid.Column="2" Width="52" Margin="8,0,0,0" VerticalContentAlignment="Center"
-                                 Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"/>
-                    </Grid>
-
-                    <TextBlock x:Name="VolumeExampleText" Text="(例: 200 = 200%)" Foreground="{StaticResource TextDimBrush}" FontSize="11" Margin="0,6,0,0"/>
+                    <StackPanel>
+                        <Grid Margin="0,0,0,0" Height="26"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="ScrollVolumeLabelText" Text="スクロール音量" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="ScrollVolumeText" Grid.Column="1" Width="150" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                        <Grid Margin="0,3,0,0" Height="26"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="HotkeyVolumeLabelText" Text="ホットキー音量" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="HotkeyVolumeText" Grid.Column="1" Width="150" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                        <Grid Margin="0,3,0,0" Height="26"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="SkipDurationLabelText" Text="スキップ秒数" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="SkipDurationText" Grid.Column="1" Width="150" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                        <Grid Margin="0,3,0,0" Height="26"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="SmallSkipDurationLabelText" Text="微小移動(秒)" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="StepDurationText" Grid.Column="1" Width="150" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                        <Grid Margin="0,3,0,0" Height="26"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="MaxRecentFilesLabelText" Text="最近再生した項目数" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="MaxRecentFilesText" Grid.Column="1" Width="150" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                        <Grid Margin="0,3,0,0" Height="26"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="DefaultVolumeLabelText" Text="デフォルト音量" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="DefaultVolumeText" Grid.Column="1" Width="150" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                        <Grid Margin="0,3,0,0" Height="26"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="SpeedStepLabelText" Text="速度上昇・低下" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="SpeedStepText" Grid.Column="1" Width="150" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                        <Grid Margin="0,3,0,0" Height="26"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="SpeedResetLabelText" Text="速度リセット" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="SpeedResetText" Grid.Column="1" Width="150" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                        <Grid Margin="0,3,0,0" Height="26"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="MaxVolumeLabelText" Text="音量上限" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="MaxVolumeText" Grid.Column="1" Width="150" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                        <Grid Margin="0,3,0,0" Height="26"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="90"/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions><TextBlock x:Name="DefaultWaveformZoomLabelText" Text="デフォルト波形表示範囲" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="DefaultWaveformZoomValueText" Grid.Column="1" Width="90" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/><ComboBox x:Name="DefaultWaveformZoomUnitComboBox" Grid.Column="2" Width="52" Margin="8,0,0,0" HorizontalAlignment="Left" Style="{StaticResource ComboBoxStyle}"><ComboBoxItem Content="%" Tag="Percentage"/><ComboBoxItem Content="秒" Tag="Seconds"/></ComboBox></Grid>
+                        <Grid Margin="0,3,0,0" Height="26"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="90"/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions><TextBlock x:Name="NumericCacheLimitLabelText" Text="波形のキャッシュ上限" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="NumericCacheLimitValueText" Grid.Column="1" Width="90" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/><ComboBox x:Name="NumericCacheLimitUnitComboBox" Grid.Column="2" Width="52" Margin="8,0,0,0" HorizontalAlignment="Left" Style="{StaticResource ComboBoxStyle}"><ComboBoxItem Content="KB" Tag="KB"/><ComboBoxItem Content="MB" Tag="MB"/><ComboBoxItem Content="GB" Tag="GB"/></ComboBox></Grid>
+                        <Grid Margin="0,3,0,0" Height="26"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="TrackTransitionDelayLabelText" Text="曲の切替待機時間 (秒)" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="TrackTransitionDelayText" Grid.Column="1" Width="150" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Display -->
                 <StackPanel x:Name="DisplayPanel" Visibility="Collapsed">
-                    <TextBlock x:Name="DisplayTitleText" Text="表示設定" FontSize="14" FontWeight="Bold" Margin="0,0,0,8" Foreground="{StaticResource TextLightBrush}"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock x:Name="DisplayTitleText" Text="表示設定" FontSize="14" FontWeight="Bold" Grid.Column="0" Margin="0,0,12,0" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock x:Name="DisplayHintText" Text="波形などの表示方法を設定します。" Grid.Column="1" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap"/>
+                    </Grid>
+                    <Expander x:Name="WaveformDetailExpander" IsExpanded="True" Margin="0,4" HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <Grid MinWidth="350" Margin="0,0,8,0" HorizontalAlignment="Stretch">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="WaveformDetailTitleText" Text="波形" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                            <Button x:Name="ResetWaveformDetailButton" Grid.Column="1" Content="初期化" HorizontalAlignment="Right" Margin="16,0,0,0" Padding="8,3" MinWidth="64" MinHeight="22" Background="{DynamicResource ResetButtonBackgroundBrush}" Foreground="{DynamicResource ResetButtonForegroundBrush}" BorderBrush="{DynamicResource BorderControlBrush}" Style="{StaticResource SettingsInputButtonStyle}" Click="ResetWaveformDetailButton_Click"/>
+                        </Grid>
+                    </Expander.Header>
+                    <StackPanel Margin="8,2,0,0">
                     <StackPanel Orientation="Horizontal" Margin="0,4">
-                        <TextBlock x:Name="ShowWaveformLabelText" Text="波形表示" Width="160" VerticalAlignment="Center" Foreground="{StaticResource TextLightBrush}"/>
+                        <TextBlock x:Name="ShowWaveformLabelText" Text="波形表示" Width="160" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
                         <CheckBox x:Name="ShowWaveformCheck" VerticalAlignment="Center"/>
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock x:Name="ProgressiveWaveformLabelText" Text="波形の逐次表示" Width="160" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <CheckBox x:Name="ProgressiveWaveformCheck" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock x:Name="SaveWaveformCacheLabelText" Text="波形をキャッシュに保存" Width="160" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <CheckBox x:Name="SaveWaveformCacheCheck" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock x:Name="ClearWaveformCacheLabelText" Text="波形のキャッシュをクリア" Width="160" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <Button x:Name="ClearWaveformCacheButton" Content="クリア" MinWidth="64" MinHeight="22" Padding="8,3" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}" Style="{StaticResource SettingsInputButtonStyle}" Click="ClearWaveformCacheButton_Click"/>
+                    </StackPanel>
+                    <Grid Margin="0,4" Height="28"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="90"/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions><TextBlock x:Name="CacheLimitLabelText" Text="波形のキャッシュ上限" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="DisplayCacheLimitValueText" Grid.Column="1" Width="90" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/><ComboBox x:Name="DisplayCacheLimitUnitComboBox" Grid.Column="2" Width="52" Margin="8,0,0,0" HorizontalAlignment="Left" Style="{StaticResource ComboBoxStyle}"><ComboBoxItem Content="KB" Tag="KB"/><ComboBoxItem Content="MB" Tag="MB"/><ComboBoxItem Content="GB" Tag="GB"/></ComboBox></Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock x:Name="CursorModeLabelText" Text="再生カーソル" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <ComboBox x:Name="CursorModeComboBox" Grid.Column="1" Width="180" HorizontalAlignment="Left" Style="{StaticResource ComboBoxStyle}">
+                            <ComboBoxItem x:Name="CenterFixedCursorItem" Content="中央固定" Tag="CenterFixed"/>
+                            <ComboBoxItem x:Name="LeftScrollCursorItem" Content="左から流れる" Tag="LeftScroll"/>
+                        </ComboBox>
+                    </Grid>
+                    <StackPanel Margin="0,4,0,0">
+                        <Grid Margin="0,2" Height="28"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="MinZoomLevelLabelText" Text="最小表示幅 (秒)" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="MinZoomLevelText" Grid.Column="1" Width="130" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                        <Grid Margin="0,2" Height="28"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="ZoomFactorLabelText" Text="ズーム倍率" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="ZoomFactorText" Grid.Column="1" Width="130" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                        <Grid Margin="0,2" Height="28"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="WaveformScrollStepLabelText" Text="スクロール幅 (秒)" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="WaveformScrollStepText" Grid.Column="1" Width="130" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                        <Grid Margin="0,2" Height="28"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="HorizontalDetailLabelText" Text="波形の横方向詳細度 (0-100)" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="HorizontalDetailText" Grid.Column="1" Width="130" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                        <Grid Margin="0,2" Height="28"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="VerticalDetailLabelText" Text="波形の縦方向詳細度 (0-100)" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="VerticalDetailText" Grid.Column="1" Width="130" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                    </StackPanel>
+                    </StackPanel>
+                    </Expander>
+                    <Expander x:Name="MinimapDetailExpander" IsExpanded="True" Margin="0,8,0,0" HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <Grid MinWidth="350" Margin="0,0,8,0" HorizontalAlignment="Stretch">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="MinimapDetailTitleText" Text="ミニマップ" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                            <Button x:Name="ResetMinimapDetailButton" Grid.Column="1" Content="初期化" HorizontalAlignment="Right" Margin="16,0,0,0" Padding="8,3" MinWidth="64" MinHeight="22" Background="{DynamicResource ResetButtonBackgroundBrush}" Foreground="{DynamicResource ResetButtonForegroundBrush}" BorderBrush="{DynamicResource BorderControlBrush}" Style="{StaticResource SettingsInputButtonStyle}" Click="ResetMinimapDetailButton_Click"/>
+                        </Grid>
+                    </Expander.Header>
+                    <StackPanel Margin="8,2,0,0">
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock x:Name="ShowMinimapLabelText" Text="ミニマップを表示" Width="160" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <CheckBox x:Name="ShowMinimapCheck" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Grid Margin="0,2" Height="28"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock x:Name="MinimapHeightLabelText" Text="ミニマップ高さ (px)" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/><TextBox x:Name="MinimapHeightText" Grid.Column="1" Width="130" TextAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Height="22" HorizontalAlignment="Left" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}"/></Grid>
+                    </StackPanel>
+                    </Expander>
                 </StackPanel>
             </Grid>
 
             <!-- ボタン -->
             <StackPanel Orientation="Horizontal" Grid.Column="2" Grid.Row="1" HorizontalAlignment="Right" Margin="0,12,0,0">
-                <Button x:Name="CancelButton" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" Content="キャンセル" Width="88" Height="28" Margin="0,0,8,0" Click="CancelButton_Click"/>
-                <Button x:Name="ApplyButton" Background="{DynamicResource AccentGreenBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" Content="適用" Width="88" Height="28" Margin="0,0,8,0" Click="ApplyButton_Click"/>
-                <Button x:Name="OkButton" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource TextLightBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" Content="OK" Width="88" Height="28" Click="OkButton_Click"/>
+                <Button x:Name="CancelButton" Style="{StaticResource SettingsInputButtonStyle}" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}" Content="キャンセル" Width="88" Height="28" Margin="0,0,8,0" Click="CancelButton_Click"/>
+                <Button x:Name="ApplyButton" Style="{StaticResource SettingsInputButtonStyle}" Background="{DynamicResource ApplyButtonBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}" Content="適用" Width="88" Height="28" Margin="0,0,8,0" Click="ApplyButton_Click"/>
+                <Button x:Name="OkButton" Style="{StaticResource SettingsInputButtonStyle}" Background="{DynamicResource SurfaceControlBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderControlBrush}" Content="OK" Width="88" Height="28" Click="OkButton_Click"/>
             </StackPanel>
         </Grid>
     </Border>

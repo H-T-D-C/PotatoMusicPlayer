@@ -23,7 +23,16 @@ namespace PotatoMusicPlayer.Models
         SpeedIncrease = 13,
         SpeedReset = 14,
         ToggleLoopMode = 15,
-        ToggleWaveform = 16
+        ToggleWaveform = 16,
+        WaveformZoomIn = 17,
+        WaveformZoomOut = 18
+    }
+
+    public enum HotKeyInputType
+    {
+        Key = 0,
+        MouseWheelUp = 1,
+        MouseWheelDown = 2
     }
 
     /// <summary>
@@ -35,11 +44,17 @@ namespace PotatoMusicPlayer.Models
         public HotKeyAction Action { get; set; }
         public Key Key { get; set; }
         public ModifierKeys Modifiers { get; set; } = ModifierKeys.None;
+        public HotKeyInputType InputType { get; set; } = HotKeyInputType.Key;
         public string DisplayName { get; set; }  // UI表示用の日本語名
 
         public override string ToString()
         {
-            var keyStr = Key.ToString();
+            var keyStr = InputType switch
+            {
+                HotKeyInputType.MouseWheelUp => "MouseWheel Up",
+                HotKeyInputType.MouseWheelDown => "MouseWheel Down",
+                _ => Key.ToString()
+            };
             var modStr = Modifiers.ToString();
             
             if (Modifiers == ModifierKeys.None)
@@ -53,6 +68,7 @@ namespace PotatoMusicPlayer.Models
             if (obj is HotKeyBinding other)
             {
                 return this.Action == other.Action && 
+                       this.InputType == other.InputType &&
                        this.Key == other.Key && 
                        this.Modifiers == other.Modifiers;
             }
@@ -61,7 +77,7 @@ namespace PotatoMusicPlayer.Models
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Action, Key, Modifiers);
+            return HashCode.Combine(Action, InputType, Key, Modifiers);
         }
     }
 }

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -8,17 +10,67 @@ using Microsoft.Win32;
 using PotatoMusicPlayer.Models;
 using PotatoMusicPlayer.Services;
 using PotatoMusicPlayer.ViewModels;
+using PotatoMusicPlayer.Views;
 
 namespace PotatoMusicPlayer
 {
     public partial class MainWindow : Window
     {
+        private enum MinimapDragMode
+        {
+            None,
+            MoveRange,
+            PointToRange,
+            ResizeStart,
+            ResizeEnd,
+            ZoomAroundCenter
+        }
+
         private readonly MainViewModel _viewModel;
         private readonly LanguageService _languageService;
         private bool _isDraggingSeekBar = false;
+        private bool _wasPlayingBeforeSeekBarDrag;
         private bool _isDraggingWaveform = false;
+        private bool _isPotentialWaveformPan = false;
+        private bool _isPanningWaveform = false;
+        private bool _isCenterWaveformPanMode;
+        private bool _keepWaveformRangeDuringDrag;
+        private bool _resumePlaybackAfterWaveformDrag;
+        private bool _wasPlayingBeforeWaveformDrag;
+        private bool _resumePlaybackAfterMinimapDrag;
+        private bool _wasPlayingBeforeMinimapDrag;
         private bool _isUpdatingVolumeFromCode = false;
         private float[] _waveformData = Array.Empty<float>();
+        private readonly List<Rectangle> _waveformBars = new();
+        private Line _playbackCursorLine;
+        private Line _centerGuideLine;
+        private double _waveformPointerStartX;
+        private double _waveformPanInitialRangeStart;
+        private double _waveformPanInitialRangeDuration;
+        private double _playbackAnchorPosition;
+        private long _playbackAnchorTimestamp;
+        private float _playbackAnchorSpeed = 1.0f;
+        private bool _isPlaybackRenderingAttached;
+        private double _drawnWaveformRangeStart;
+        private double _drawnWaveformRangeDuration;
+        private bool _hasDrawnWaveformRange;
+        private bool _showWaveformRangeAsPercentage;
+        private MinimapDragMode _minimapDragMode;
+        private double _minimapDragStartX;
+        private double _minimapDragStartTime;
+        private double _minimapInitialRangeStart;
+        private double _minimapInitialRangeEnd;
+        private double _minimapInitialPosition;
+        private double _minimapPreviousExcess;
+        private bool _minimapDragStarted;
+        private Line _minimapCursorLine;
+        private Rectangle _minimapRangeOverlay;
+        private Rectangle _minimapLeftHandle;
+        private Rectangle _minimapRightHandle;
+        private bool _isZoomingFromRightHandle;
+        private float[] _minimapWaveformCache;
+        private double _minimapCachedWidth;
+        private double _minimapCachedHeight;
 
         public MainWindow()
         {
@@ -44,12 +96,26 @@ namespace PotatoMusicPlayer
             // Recent files メニューを初期化
             UpdateRecentFilesMenu();
 
+            Loaded += MainWindow_Loaded;
             Closing += MainWindow_Closing;
+        }
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            string startupFile = App.StartupFilePath;
+            if (string.IsNullOrEmpty(startupFile) || !FileService.FileExists(startupFile))
+                return;
+
+            await _viewModel.LoadAndPlayFileAsync(startupFile);
+            UpdateRecentFilesMenu();
         }
 
         private void ThemeService_ThemeChanged(object sender, EventArgs e)
         {
             UpdateVolumeIcon(_viewModel?.PlaybackState?.IsMuted == true ? 0 : VolumeSlider?.Value ?? 0);
+            _minimapWaveformCache = null;
+            DrawWaveform();
+            DrawMinimap();
         }
 
         // ========== ウィンドウ設定の復元・保存 ==========
@@ -64,7 +130,10 @@ namespace PotatoMusicPlayer
             Topmost = settings.IsAlwaysOnTop;
             AlwaysOnTopMenuItem.IsChecked = settings.IsAlwaysOnTop;
             ShowWaveformMenuItem.IsChecked = settings.ShowWaveform;
+            CenterFixedWaveformMenuItem.IsChecked = settings.WaveformZoom.CursorMode == CursorDisplayMode.CenterFixed;
             WaveformContainer.Visibility = settings.ShowWaveform ? Visibility.Visible : Visibility.Collapsed;
+            ApplyWaveformSettingsToUi();
+            VolumeSlider.Maximum = Math.Max(100, settings.MaxVolumeMultiplier * 100.0);
 
             if (settings.IsWindowSizeFixed)
             {
@@ -72,14 +141,22 @@ namespace PotatoMusicPlayer
                 FixWindowSizeMenuItem.IsChecked = true;
             }
 
-            VolumeSlider.Value = settings.DefaultVolume * 100;
+            VolumeSlider.Value = Math.Clamp(settings.DefaultVolume * 100, VolumeSlider.Minimum, VolumeSlider.Maximum);
+            UpdateThemeMenuSelection(settings.Theme);
         }
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            SetPlaybackRendering(false);
             ThemeService.ThemeChanged -= ThemeService_ThemeChanged;
             // ウィンドウの状態を保存
             var settings = _viewModel.Settings;
+            if (settings.RememberLastVolume)
+                settings.DefaultVolume = (float)Math.Clamp(VolumeSlider.Value / 100.0, 0.0, settings.MaxVolumeMultiplier);
+            if (settings.RememberLastPlaybackSpeed && _viewModel.PlaybackState != null)
+                settings.DefaultPlaybackSpeed = Math.Clamp(_viewModel.PlaybackState.PlaybackSpeed, 0.25f, 4.0f);
+            if (settings.RememberLastLoopMode && _viewModel.PlaybackState != null)
+                settings.DefaultLoopMode = _viewModel.PlaybackState.LoopMode;
             settings.WindowWidth = Width;
             settings.WindowHeight = Height;
             settings.WindowLeft = Left;
@@ -110,6 +187,25 @@ namespace PotatoMusicPlayer
                 {
                     _waveformData = _viewModel.CurrentWaveformData;
                     DrawWaveform();
+                    DrawMinimap();
+                }
+                else if (e.PropertyName == nameof(MainViewModel.ZoomState))
+                {
+                    bool isAutomaticCenterFollow = _viewModel.Settings.WaveformZoom.CursorMode == CursorDisplayMode.CenterFixed &&
+                        _viewModel.PlaybackState?.State == PlayState.Playing &&
+                        !_isDraggingWaveform && _minimapDragMode == MinimapDragMode.None;
+                    if (!isAutomaticCenterFollow)
+                    {
+                        if (_viewModel.Settings.WaveformZoom.CursorMode == CursorDisplayMode.CenterFixed)
+                        {
+                            RefreshWaveformRange();
+                            DrawPlaybackCursorAtCenter();
+                        }
+                        else
+                            DrawWaveform();
+                    }
+                    DrawMinimap();
+                    UpdateWaveformRangeDisplay();
                 }
                 else if (e.PropertyName == nameof(MainViewModel.WaveformProgress))
                 {
@@ -119,6 +215,9 @@ namespace PotatoMusicPlayer
                 {
                     _languageService.Load(_viewModel.Settings.Language);
                     ApplyLanguage();
+                    ApplyAudioSettingsToUi();
+                    UpdateThemeMenuSelection(_viewModel.Settings.Theme);
+                    ApplyWaveformSettingsToUi();
                 }
             });
         }
@@ -149,6 +248,29 @@ namespace PotatoMusicPlayer
             var state = _viewModel.PlaybackState;
             if (state == null) return;
 
+            bool resetPlaybackAnchor = state.State != PlayState.Playing || !_isPlaybackRenderingAttached;
+            if (!resetPlaybackAnchor)
+            {
+                double predictedPosition = _playbackAnchorPosition +
+                    Stopwatch.GetElapsedTime(_playbackAnchorTimestamp).TotalSeconds * _playbackAnchorSpeed;
+                double correction = state.CurrentPosition.TotalSeconds - predictedPosition;
+                // LibVLC の定期通知は描画時刻より遅れて届くことがある。通常の遅れで
+                // 基準を巻き戻すと、200msごとにカーソルと波形が逆方向へ跳ねてしまう。
+                // 明確なシーク・実測の進みだけを再同期対象にする。
+                resetPlaybackAnchor = correction > 0.5 || correction < -0.75 ||
+                    Math.Abs(state.PlaybackSpeed - _playbackAnchorSpeed) > 0.001f;
+            }
+            if (resetPlaybackAnchor)
+            {
+                _playbackAnchorPosition = state.CurrentPosition.TotalSeconds;
+                _playbackAnchorTimestamp = Stopwatch.GetTimestamp();
+                _playbackAnchorSpeed = state.PlaybackSpeed;
+            }
+            SetPlaybackRendering(state.State == PlayState.Playing);
+            double displayedPosition = _viewModel.PendingWaveformSeekPosition ?? (state.State == PlayState.Playing
+                ? GetInterpolatedPlaybackPosition(state)
+                : state.CurrentPosition.TotalSeconds);
+
             PlayPauseButton.Content = state.State == PlayState.Playing ? "⏸" : "▶";
             TaskbarPlayPauseButton.Description = state.State == PlayState.Playing ? "Pause" : "Play";
             TaskbarPlayPauseButton.ImageSource = state.State == PlayState.Playing
@@ -156,7 +278,7 @@ namespace PotatoMusicPlayer
                 : (System.Windows.Media.ImageSource)FindResource("TaskbarPlayIcon");
             CurrentTimeText.Text = FormatTime(state.CurrentPosition);
             SpeedText.Text = $"{state.PlaybackSpeed:0.00}x";
-            LoopButton.Content = $"Loop: {state.LoopModeDisplayString}";
+            LoopButton.Content = $"{_languageService.Get("Loop.Label")}: {GetLoopModeDisplayString(state.LoopMode)}";
 
             // Duration はメディア読み込み直後は 0 のことがあるため、
             // 再生中は毎tickで Maximum を実際の長さに追従させる（シークバー右端張り付き対策）
@@ -168,15 +290,21 @@ namespace PotatoMusicPlayer
                 TotalTimeText.Text = FormatTime(state.Duration);
             }
 
-            if (!_isDraggingSeekBar)
+            if (!_isDraggingSeekBar && !_isDraggingWaveform &&
+                !(state.State == PlayState.Playing && _isPlaybackRenderingAttached))
             {
                 SeekBar.Value = state.CurrentPosition.TotalSeconds;
             }
 
-            if (!_isDraggingWaveform)
+            if (_viewModel.Settings.WaveformZoom.CursorMode == CursorDisplayMode.CenterFixed)
             {
-                DrawPlaybackCursor(state.CurrentPosition, state.Duration);
+                DrawPlaybackCursorAtCenter(displayedPosition);
             }
+            else if (!_isDraggingWaveform)
+            {
+                DrawPlaybackCursor(TimeSpan.FromSeconds(_minimapCarriedPosition ?? displayedPosition));
+            }
+            UpdateMinimapCursor(displayedPosition);
 
             // 音量バーを実際の音量に追従させる（ホットキー操作時も反映）
             _isUpdatingVolumeFromCode = true;
@@ -185,6 +313,60 @@ namespace PotatoMusicPlayer
             VolumeText.Text = $"{(int)VolumeSlider.Value}%";
             _isUpdatingVolumeFromCode = false;
             UpdateVolumeIcon(state.IsMuted ? 0 : VolumeSlider.Value);
+        }
+
+        private void SetPlaybackRendering(bool enabled)
+        {
+            if (_isPlaybackRenderingAttached == enabled)
+                return;
+
+            if (enabled)
+                CompositionTarget.Rendering += PlaybackRendering;
+            else
+                CompositionTarget.Rendering -= PlaybackRendering;
+
+            _isPlaybackRenderingAttached = enabled;
+        }
+
+        private void PlaybackRendering(object sender, EventArgs e)
+        {
+            var playbackState = _viewModel?.PlaybackState;
+            var zoomState = _viewModel?.ZoomState;
+            if (playbackState?.State != PlayState.Playing || zoomState == null || zoomState.VisibleRangeDuration <= 0)
+            {
+                SetPlaybackRendering(false);
+                return;
+            }
+
+            double position = _viewModel.PendingWaveformSeekPosition ??
+                GetInterpolatedPlaybackPosition(playbackState);
+
+            if (!_isDraggingSeekBar && !_isDraggingWaveform)
+                SeekBar.Value = position;
+
+            if (_viewModel.Settings.WaveformZoom.CursorMode == CursorDisplayMode.CenterFixed)
+            {
+                // 波形・ミニマップのドラッグ中は描画で競合しないよう、追従の上書きを休止する。
+                if (!_isDraggingWaveform && _minimapDragMode == MinimapDragMode.None)
+                {
+                    _viewModel.FollowWaveformPosition(position);
+                    RefreshWaveformRange();
+                    DrawPlaybackCursorAtCenter(position);
+                }
+                UpdateMinimapCursor(position);
+                return;
+            }
+
+            _viewModel.FollowWaveformPosition(position);
+            DrawPlaybackCursor(TimeSpan.FromSeconds(_minimapCarriedPosition ?? position));
+            UpdateMinimapCursor(position);
+        }
+
+        private double GetInterpolatedPlaybackPosition(PlaybackState state)
+        {
+            double elapsed = Stopwatch.GetElapsedTime(_playbackAnchorTimestamp).TotalSeconds;
+            double position = _playbackAnchorPosition + elapsed * _playbackAnchorSpeed;
+            return Math.Clamp(position, 0, Math.Max(0, state.Duration.TotalSeconds));
         }
 
         private string FormatTime(TimeSpan ts)
@@ -197,7 +379,6 @@ namespace PotatoMusicPlayer
             Title = _languageService.Get("Main.Title");
             FileMenuItem.Header = _languageService.Get("Main.File");
             PlaybackMenuItem.Header = _languageService.Get("Main.Playback");
-            EditMenuItem.Header = _languageService.Get("Main.Edit");
             ViewMenuItem.Header = _languageService.Get("Main.View");
             OtherMenuItem.Header = _languageService.Get("Main.Other");
             VolumeIcon.ToolTip = _languageService.Get("Main.VolumeTooltip");
@@ -210,28 +391,48 @@ namespace PotatoMusicPlayer
             FileOpenTerminalMenuItem.Header = _languageService.Get("Menu.File.OpenTerminal");
             RecentFilesMenuItem.Header = _languageService.Get("Menu.File.RecentFiles");
             FileExitMenuItem.Header = _languageService.Get("Menu.File.Exit");
+            FileSettingsMenuItem.Header = _languageService.Get("Menu.Edit.Settings");
 
             // 再生メニュー
             PlaybackPlayPauseMenuItem.Header = _languageService.Get("Menu.Playback.PlayPause");
             PlaybackStopMenuItem.Header = _languageService.Get("Menu.Playback.Stop");
             PlaybackGoToStartMenuItem.Header = _languageService.Get("Menu.Playback.GoToStart");
+            PlaybackSeekToTimeMenuItem.Header = _languageService.Get("Menu.Playback.SeekToTime");
             PlaybackSpeedResetMenuItem.Header = _languageService.Get("Menu.Playback.SpeedReset");
             PlaybackSpeedDecreaseMenuItem.Header = _languageService.Get("Menu.Playback.SpeedDecrease");
             PlaybackSpeedIncreaseMenuItem.Header = _languageService.Get("Menu.Playback.SpeedIncrease");
             PlaybackSkipForwardMenuItem.Header = _languageService.Get("Menu.Playback.SkipForward");
             PlaybackSkipBackwardMenuItem.Header = _languageService.Get("Menu.Playback.SkipBackward");
 
-            // 編集メニュー
-            EditSettingsMenuItem.Header = _languageService.Get("Menu.Edit.Settings");
-
             // 表示メニュー
             AlwaysOnTopMenuItem.Header = _languageService.Get("Menu.View.AlwaysOnTop");
             FixWindowSizeMenuItem.Header = _languageService.Get("Menu.View.FixWindowSize");
+            WaveformMenuItem.Header = _languageService.Get("Menu.View.Waveform");
             ShowWaveformMenuItem.Header = _languageService.Get("Menu.View.ShowWaveform");
+            CenterFixedWaveformMenuItem.Header = _languageService.Get("Menu.View.CenterFixedWaveform");
+            WaveformRangeMenuItem.Header = _languageService.Get("Menu.View.WaveformRange");
             ViewFullScreenMenuItem.Header = _languageService.Get("Menu.View.FullScreen");
+            ThemeMenuItem.Header = _languageService.Get("Menu.View.Theme");
+            ThemeLightMenuItem.Header = _languageService.Get("Theme.Light");
+            ThemeDarkMenuItem.Header = _languageService.Get("Theme.Dark");
+            ThemeSystemMenuItem.Header = _languageService.Get("Theme.System");
 
             // その他メニュー
             OtherAboutMenuItem.Header = _languageService.Get("Menu.Other.About");
+            if (_viewModel?.PlaybackState != null)
+                LoopButton.Content = $"{_languageService.Get("Loop.Label")}: {GetLoopModeDisplayString(_viewModel.PlaybackState.LoopMode)}";
+            UpdateWaveformRangeDisplay();
+        }
+
+        private string GetLoopModeDisplayString(LoopMode mode)
+        {
+            string key = mode switch
+            {
+                LoopMode.One => "Loop.One",
+                LoopMode.All => "Loop.All",
+                _ => "Loop.Off"
+            };
+            return _languageService.Get(key);
         }
 
         // ========== タイトルバー(カスタム) ==========
@@ -297,6 +498,18 @@ namespace PotatoMusicPlayer
         private void PlayPause_Click(object sender, RoutedEventArgs e) => _viewModel.TogglePlayPause();
         private void Stop_Click(object sender, RoutedEventArgs e) => _viewModel.Stop();
         private void GoToStart_Click(object sender, RoutedEventArgs e) => _viewModel.SetPosition(0);
+        private void SeekToTime_Click(object sender, RoutedEventArgs e)
+        {
+            if (!InputPromptWindow.TryShow(this, _languageService.Get("Dialog.Seek.Title"), _languageService.Get("Dialog.Seek.Prompt"),
+                FormatTime(_viewModel.PlaybackState.CurrentPosition), out string input,
+                value => TryParsePosition(value, _viewModel.PlaybackState.Duration.TotalSeconds, out _), _languageService))
+                return;
+
+            if (TryParsePosition(input, _viewModel.PlaybackState.Duration.TotalSeconds, out double seconds))
+                _viewModel.SetPosition(seconds);
+            else
+                MessageBox.Show(_languageService.Get("Dialog.Seek.Invalid"), _languageService.Get("Dialog.Seek.Title"), MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
         private void SpeedReset_Click(object sender, RoutedEventArgs e) => _viewModel.ResetSpeed();
         private void SpeedDecrease_Click(object sender, RoutedEventArgs e) => _viewModel.DecreaseSpeed();
         private void SpeedIncrease_Click(object sender, RoutedEventArgs e) => _viewModel.IncreaseSpeed();
@@ -322,9 +535,155 @@ namespace PotatoMusicPlayer
 
         private void ShowWaveform_Click(object sender, RoutedEventArgs e)
         {
+            _viewModel.Settings.ShowWaveform = ShowWaveformMenuItem.IsChecked;
             WaveformContainer.Visibility = ShowWaveformMenuItem.IsChecked ? Visibility.Visible : Visibility.Collapsed;
             if (ShowWaveformMenuItem.IsChecked)
                 DrawWaveform();
+        }
+
+        private void CenterFixedWaveform_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.Settings.WaveformZoom.CursorMode = CenterFixedWaveformMenuItem.IsChecked
+                ? CursorDisplayMode.CenterFixed
+                : CursorDisplayMode.LeftScroll;
+            DrawWaveform();
+            DrawMinimap();
+        }
+
+        private void WaveformRange_Click(object sender, RoutedEventArgs e)
+        {
+            var zoomState = _viewModel.ZoomState;
+            if (zoomState == null || !InputPromptWindow.TryShow(this, _languageService.Get("Dialog.WaveformRange.Title"), _languageService.Get("Dialog.WaveformRange.Prompt"),
+                zoomState.VisibleRangeDuration.ToString("0.##"), out string input,
+                value => TryParsePosition(value, zoomState.TotalDuration, out double seconds) && seconds > 0, _languageService))
+                return;
+
+            if (!TryParsePosition(input, zoomState.TotalDuration, out double seconds) || seconds <= 0)
+            {
+                MessageBox.Show(_languageService.Get("Dialog.WaveformRange.Invalid"), _languageService.Get("Dialog.WaveformRange.Title"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (_viewModel.Settings.WaveformZoom.CursorMode == CursorDisplayMode.CenterFixed)
+                _viewModel.ZoomWaveformPreservingRatio(zoomState.VisibleRangeStart,
+                    zoomState.VisibleRangeEnd, _viewModel.PlaybackState.CurrentPosition.TotalSeconds, seconds);
+            else
+            {
+                double center = zoomState.VisibleRangeStart + zoomState.VisibleRangeDuration / 2;
+                _viewModel.SetWaveformRangeCentered(center, seconds);
+            }
+        }
+
+        private void ApplyWaveformSettingsToUi()
+        {
+            if (_viewModel == null || MinimapContainer == null)
+                return;
+
+            var appSettings = _viewModel.Settings;
+            var settings = appSettings.WaveformZoom;
+            ShowWaveformMenuItem.IsChecked = appSettings.ShowWaveform;
+            CenterFixedWaveformMenuItem.IsChecked = settings.CursorMode == CursorDisplayMode.CenterFixed;
+            WaveformContainer.Visibility = appSettings.ShowWaveform ? Visibility.Visible : Visibility.Collapsed;
+            MinimapContainer.Visibility = settings.ShowMinimap ? Visibility.Visible : Visibility.Collapsed;
+            int height = Math.Clamp(settings.MinimapHeight, 8, 64);
+            MinimapRow.Height = settings.ShowMinimap ? new GridLength(height + 2) : new GridLength(0);
+            MinimapContainer.Height = height;
+            DrawMinimap();
+            UpdateWaveformRangeDisplay();
+        }
+
+        private void UpdateWaveformRangeDisplay()
+        {
+            var zoomState = _viewModel?.ZoomState;
+            if (WaveformRangeText == null || zoomState == null)
+                return;
+
+            WaveformRangeText.Text = _showWaveformRangeAsPercentage
+                ? $"{_languageService.Get("Waveform.RangeLabel")}: {zoomState.VisibleRangeDuration / zoomState.TotalDuration * 100:0.##}%"
+                : $"{_languageService.Get("Waveform.RangeLabel")}: {zoomState.VisibleRangeDuration:0.##} {_languageService.Get("Waveform.SecondsUnit")}";
+        }
+
+        private void WaveformRangeText_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            _showWaveformRangeAsPercentage = !_showWaveformRangeAsPercentage;
+            UpdateWaveformRangeDisplay();
+            e.Handled = true;
+        }
+
+        private static bool TryParsePlaybackTime(string input, out double seconds)
+        {
+            seconds = 0;
+            if (string.IsNullOrWhiteSpace(input))
+                return false;
+
+            string[] parts = input.Trim().Split(':');
+            if (parts.Length > 3)
+                return false;
+
+            double multiplier = 1;
+            for (int index = parts.Length - 1; index >= 0; index--)
+            {
+                if (!double.TryParse(parts[index], out double value) || value < 0 ||
+                    (index > 0 && value >= 60))
+                    return false;
+
+                seconds += value * multiplier;
+                multiplier *= 60;
+            }
+
+            return true;
+        }
+
+        private static bool TryParsePosition(string input, double totalDuration, out double seconds)
+        {
+            input = input?.Trim() ?? string.Empty;
+            if (input.EndsWith("%") && double.TryParse(input[..^1].Trim(), out double percentage) &&
+                percentage >= 0 && percentage <= 100)
+            {
+                seconds = totalDuration * percentage / 100;
+                return true;
+            }
+
+            return TryParsePlaybackTime(input, out seconds) && seconds <= totalDuration;
+        }
+
+        private void ThemeMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem item || !Enum.TryParse(item.Tag?.ToString(), out ThemeMode mode))
+                return;
+
+            var settings = _viewModel.Settings;
+            settings.Theme = mode;
+            new SettingsService().SaveSettings(settings);
+            ThemeService.Apply(mode);
+            UpdateThemeMenuSelection(mode);
+        }
+
+        private void UpdateThemeMenuSelection(ThemeMode mode)
+        {
+            if (ThemeLightMenuItem == null)
+                return;
+
+            ThemeLightMenuItem.IsChecked = mode == ThemeMode.Light;
+            ThemeDarkMenuItem.IsChecked = mode == ThemeMode.Dark;
+            ThemeSystemMenuItem.IsChecked = mode == ThemeMode.System;
+        }
+
+        private void ApplyAudioSettingsToUi()
+        {
+            if (VolumeSlider == null || _viewModel == null)
+                return;
+
+            double maximum = Math.Max(100, _viewModel.Settings.MaxVolumeMultiplier * 100.0);
+            double previousValue = VolumeSlider.Value;
+            _isUpdatingVolumeFromCode = true;
+            VolumeSlider.Maximum = maximum;
+            VolumeSlider.Value = Math.Min(previousValue, maximum);
+            _isUpdatingVolumeFromCode = false;
+
+            if (previousValue > maximum)
+                _viewModel.SetVolume(maximum);
+            UpdateVolumeIcon(VolumeSlider.Value);
         }
 
         private void FullScreen_Click(object sender, RoutedEventArgs e)
@@ -350,142 +709,11 @@ namespace PotatoMusicPlayer
                 MessageBoxImage.Information);
         }
 
-        // ========== 波形表示・シーク ==========
-
-        private void WaveformCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            DrawWaveform();
-        }
-
-        private void DrawWaveform()
-        {
-            WaveformCanvas.Children.Clear();
-
-            if (_waveformData == null || _waveformData.Length == 0 ||
-                WaveformCanvas.ActualWidth <= 0 || WaveformCanvas.ActualHeight <= 0)
-                return;
-
-            // 画面幅に合わせてデータをピーク値でまとめる。バー本体は 1～4px に保つ。
-            int visibleBars = Math.Min(_waveformData.Length,
-                Math.Max(1, (int)(WaveformCanvas.ActualWidth / 2)));
-            double slotWidth = WaveformCanvas.ActualWidth / visibleBars;
-            double barWidth = Math.Clamp(slotWidth * 0.75, 1.0, 4.0);
-            double availableHeight = Math.Max(1, WaveformCanvas.ActualHeight - 4);
-            var waveformBrush = new SolidColorBrush(Color.FromRgb(120, 180, 255));
-            waveformBrush.Freeze();
-
-            for (int bar = 0; bar < visibleBars; bar++)
-            {
-                int start = bar * _waveformData.Length / visibleBars;
-                int end = Math.Max(start + 1, (bar + 1) * _waveformData.Length / visibleBars);
-                float peak = 0;
-
-                for (int sample = start; sample < end && sample < _waveformData.Length; sample++)
-                    peak = Math.Max(peak, _waveformData[sample]);
-
-                // 振幅の中心を波形ボックス中央に置き、上下へ均等に伸ばす。
-                double height = Math.Max(1, peak * availableHeight);
-                var rectangle = new Rectangle
-                {
-                    Width = barWidth,
-                    Height = height,
-                    Fill = waveformBrush,
-                    IsHitTestVisible = false
-                };
-
-                Canvas.SetLeft(rectangle, bar * slotWidth + (slotWidth - barWidth) / 2);
-                Canvas.SetTop(rectangle, (WaveformCanvas.ActualHeight - height) / 2);
-                WaveformCanvas.Children.Add(rectangle);
-            }
-
-            var state = _viewModel?.PlaybackState;
-            if (state != null)
-                DrawPlaybackCursor(state.CurrentPosition, state.Duration);
-        }
-
-        private void DrawPlaybackCursor(TimeSpan position, TimeSpan duration)
-        {
-            if (_waveformData == null || _waveformData.Length == 0 ||
-                duration.TotalSeconds <= 0 || WaveformCanvas.ActualWidth <= 0)
-                return;
-
-            // 波形を再描画せず、前回のカーソル線だけを差し替える。
-            for (int i = WaveformCanvas.Children.Count - 1; i >= 0; i--)
-            {
-                if (WaveformCanvas.Children[i] is Line line && line.Tag as string == "PlaybackCursor")
-                    WaveformCanvas.Children.RemoveAt(i);
-            }
-
-            double ratio = Math.Clamp(position.TotalSeconds / duration.TotalSeconds, 0, 1);
-            double cursorX = ratio * WaveformCanvas.ActualWidth;
-            var cursor = new Line
-            {
-                X1 = cursorX,
-                X2 = cursorX,
-                Y1 = 0,
-                Y2 = WaveformCanvas.ActualHeight,
-                Stroke = Brushes.White,
-                StrokeThickness = 1,
-                Tag = "PlaybackCursor",
-                IsHitTestVisible = false
-            };
-            WaveformCanvas.Children.Add(cursor);
-        }
-
-        private void UpdateWaveformProgress()
-        {
-            double progress = _viewModel.WaveformProgress;
-            bool isLoading = progress > 0 && progress < 1;
-            WaveformProgressText.Visibility = isLoading ? Visibility.Visible : Visibility.Collapsed;
-            WaveformProgressText.Text = isLoading ? $"波形を生成中... {(int)(progress * 100)}%" : string.Empty;
-        }
-
-        private void WaveformCanvas_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (!UpdateWaveformPosition(e))
-                return;
-
-            _isDraggingWaveform = true;
-            WaveformCanvas.CaptureMouse();
-            e.Handled = true;
-        }
-
-        private void WaveformCanvas_PreviewMouseMove(object sender, MouseEventArgs e)
-        {
-            if (_isDraggingWaveform && e.LeftButton == MouseButtonState.Pressed)
-                UpdateWaveformPosition(e);
-        }
-
-        private void WaveformCanvas_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (!_isDraggingWaveform)
-                return;
-
-            if (UpdateWaveformPosition(e))
-                _viewModel.Play();
-
-            _isDraggingWaveform = false;
-            WaveformCanvas.ReleaseMouseCapture();
-            e.Handled = true;
-        }
-
-        private bool UpdateWaveformPosition(MouseEventArgs e)
-        {
-            var duration = _viewModel.PlaybackState?.Duration ?? TimeSpan.Zero;
-            if (duration.TotalSeconds <= 0 || WaveformCanvas.ActualWidth <= 0)
-                return false;
-
-            double ratio = Math.Clamp(e.GetPosition(WaveformCanvas).X / WaveformCanvas.ActualWidth, 0, 1);
-            var position = TimeSpan.FromSeconds(duration.TotalSeconds * ratio);
-            DrawPlaybackCursor(position, duration);
-            _viewModel.SetPosition(position.TotalSeconds);
-            return true;
-        }
-
         // ========== 再生バー(シークバー) ==========
 
         private void SeekBar_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            _wasPlayingBeforeSeekBarDrag = _viewModel.PlaybackState?.State == PlayState.Playing;
             _isDraggingSeekBar = true;
             SeekBar.CaptureMouse();
             UpdateSeekBarValueFromMouse(e);
@@ -503,8 +731,14 @@ namespace PotatoMusicPlayer
         {
             _isDraggingSeekBar = false;
             SeekBar.ReleaseMouseCapture();
-            _viewModel.SetPosition(SeekBar.Value);
-            _viewModel.Play();
+            if (_wasPlayingBeforeSeekBarDrag)
+                _viewModel.SeekAndPlay(SeekBar.Value);
+            else
+                _viewModel.SetPosition(SeekBar.Value);
+            // 中央固定ではシーク位置へ範囲を中央合わせする。
+            if (_viewModel.Settings.WaveformZoom.CursorMode == CursorDisplayMode.CenterFixed)
+                _viewModel.CenterWaveformRangeOnPosition(SeekBar.Value);
+            _wasPlayingBeforeSeekBarDrag = false;
         }
 
         private void UpdateSeekBarValueFromMouse(MouseEventArgs e)
@@ -582,7 +816,13 @@ namespace PotatoMusicPlayer
             if (binding == null)
                 return;
 
-            switch (binding.Action)
+            if (ExecuteHotKeyAction(binding.Action))
+                e.Handled = true;
+        }
+
+        private bool ExecuteHotKeyAction(HotKeyAction action)
+        {
+            switch (action)
             {
                 case HotKeyAction.PlayPause: _viewModel.TogglePlayPause(); break;
                 case HotKeyAction.Stop:
@@ -607,10 +847,12 @@ namespace PotatoMusicPlayer
                     ShowWaveformMenuItem.IsChecked = !ShowWaveformMenuItem.IsChecked;
                     ShowWaveform_Click(this, new RoutedEventArgs());
                     break;
-                default: return;
+                case HotKeyAction.WaveformZoomIn: _viewModel.ZoomIn(); break;
+                case HotKeyAction.WaveformZoomOut: _viewModel.ZoomOut(); break;
+                default: return false;
             }
 
-            e.Handled = true;
+            return true;
         }
     }
 }
