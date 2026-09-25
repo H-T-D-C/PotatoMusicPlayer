@@ -1,5 +1,7 @@
 # 波形読み込みの長時間化対策メモ
 
+この文書は実装時の検討記録として保存する。現行仕様は [PotatoMusicPlayer_Specification.md](../PotatoMusicPlayer_Specification.md) を参照する。
+
 ## 1. 現状の方式
 
 - 方式1(全量先読み): ファイル読込時に `LoadWaveformAsync` (`ViewModels/MainViewModel.cs:512`) が `barCount = 1_000_000` 固定で全曲のピークを1回生成する。ズーム・移動時は再生成せず、`DrawWaveform` (`MainWindow.xaml.cs:705`) が既存データを切り出して描画するのみ。

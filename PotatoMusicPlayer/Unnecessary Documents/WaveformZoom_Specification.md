@@ -1,5 +1,7 @@
 # 波形・ズーム・ミニマップ仕様書
 
+この文書は実装時の個別仕様として保存する。現行仕様は [PotatoMusicPlayer_Specification.md](../PotatoMusicPlayer_Specification.md) を参照する。
+
 ## 1. 目的と用語
 
 曲全体の音量波形から、任意の時間範囲を拡大して確認する。以下では、曲全体の時間を `T`、現在表示している範囲を `[S, E]`、表示幅を `W = E - S` と表す。
