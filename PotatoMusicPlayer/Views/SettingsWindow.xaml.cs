@@ -51,6 +51,17 @@ namespace PotatoMusicPlayer.Views
             ShowWaveformCheck.IsChecked = _editableSettings.ShowWaveform;
             var waveformZoom = _editableSettings.WaveformZoom ?? new WaveformZoomSettings();
             _editableSettings.WaveformZoom = waveformZoom;
+            ProgressiveWaveformCheck.IsChecked = waveformZoom.ProgressiveWaveform;
+            SaveWaveformCacheCheck.IsChecked = waveformZoom.SaveWaveformCache;
+            DisplayCacheLimitValueText.Text = waveformZoom.WaveformCacheLimitValue.ToString("0.##");
+            NumericCacheLimitValueText.Text = DisplayCacheLimitValueText.Text;
+            int cacheUnitIndex = Math.Clamp((int)waveformZoom.WaveformCacheLimitUnit, 0, 2);
+            DisplayCacheLimitUnitComboBox.SelectedIndex = cacheUnitIndex;
+            NumericCacheLimitUnitComboBox.SelectedIndex = cacheUnitIndex;
+            DisplayCacheLimitValueText.TextChanged += DisplayCacheLimitValueText_TextChanged;
+            NumericCacheLimitValueText.TextChanged += NumericCacheLimitValueText_TextChanged;
+            DisplayCacheLimitUnitComboBox.SelectionChanged += DisplayCacheLimitUnitComboBox_SelectionChanged;
+            NumericCacheLimitUnitComboBox.SelectionChanged += NumericCacheLimitUnitComboBox_SelectionChanged;
             ShowMinimapCheck.IsChecked = waveformZoom.ShowMinimap;
             CursorModeComboBox.SelectedIndex = waveformZoom.CursorMode == CursorDisplayMode.LeftScroll ? 1 : 0;
             MinZoomLevelText.Text = waveformZoom.MinZoomLevel.ToString("0.##");
@@ -87,6 +98,8 @@ namespace PotatoMusicPlayer.Views
             // Apply edited values to the original settings instance and save
             _editableSettings.ShowWaveform = ShowWaveformCheck.IsChecked == true;
             _editableSettings.WaveformZoom.ShowMinimap = ShowMinimapCheck.IsChecked == true;
+            _editableSettings.WaveformZoom.ProgressiveWaveform = ProgressiveWaveformCheck.IsChecked == true;
+            _editableSettings.WaveformZoom.SaveWaveformCache = SaveWaveformCacheCheck.IsChecked == true;
             _editableSettings.RememberLastVolume = RememberLastVolumeCheck.IsChecked == true;
             _editableSettings.RememberLastPlaybackSpeed = RememberLastSpeedCheck.IsChecked == true;
             _editableSettings.RememberLastLoopMode = RememberLastLoopCheck.IsChecked == true;
@@ -241,8 +254,91 @@ namespace PotatoMusicPlayer.Views
             _editableSettings.WaveformZoom.VerticalDetail = verticalDetail;
             _editableSettings.DefaultWaveformZoomValue = defaultWaveformZoomValue;
             _editableSettings.TrackTransitionDelaySeconds = trackTransitionDelay;
+            if (!TryReadWaveformCacheLimit())
+                return false;
             UpdateHotKeyDisplayNames();
             return true;
+        }
+
+        private bool TryReadWaveformCacheLimit()
+        {
+            // 表示と数値の2箇所は常時同期している。両方が編集された場合は最後に編集された方を優先する。
+            string limitText = _lastCacheLimitEditFromDisplay ? DisplayCacheLimitValueText.Text : NumericCacheLimitValueText.Text;
+            var unitComboBox = _lastCacheLimitEditFromDisplay ? DisplayCacheLimitUnitComboBox : NumericCacheLimitUnitComboBox;
+            string unitTag = (unitComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag?.ToString() ?? "MB";
+            if (!double.TryParse(limitText, out double limit) || limit <= 0 || limit > 100000 ||
+                !Enum.TryParse(unitTag, out CacheSizeUnit unit))
+            {
+                MessageBox.Show("数値設定を確認してください。\n入力された値が範囲外であるか、形式が正しくありません。", "設定", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            _editableSettings.WaveformZoom.WaveformCacheLimitValue = limit;
+            _editableSettings.WaveformZoom.WaveformCacheLimitUnit = unit;
+            return true;
+        }
+
+        private bool _syncingCacheLimit;
+        private bool _lastCacheLimitEditFromDisplay = true;
+
+        private void DisplayCacheLimitValueText_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_syncingCacheLimit)
+                return;
+            _lastCacheLimitEditFromDisplay = true;
+            if (NumericCacheLimitValueText.Text != DisplayCacheLimitValueText.Text)
+            {
+                _syncingCacheLimit = true;
+                try { NumericCacheLimitValueText.Text = DisplayCacheLimitValueText.Text; }
+                finally { _syncingCacheLimit = false; }
+            }
+        }
+
+        private void NumericCacheLimitValueText_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_syncingCacheLimit)
+                return;
+            _lastCacheLimitEditFromDisplay = false;
+            if (DisplayCacheLimitValueText.Text != NumericCacheLimitValueText.Text)
+            {
+                _syncingCacheLimit = true;
+                try { DisplayCacheLimitValueText.Text = NumericCacheLimitValueText.Text; }
+                finally { _syncingCacheLimit = false; }
+            }
+        }
+
+        private void DisplayCacheLimitUnitComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (_syncingCacheLimit)
+                return;
+            _lastCacheLimitEditFromDisplay = true;
+            if (NumericCacheLimitUnitComboBox.SelectedIndex != DisplayCacheLimitUnitComboBox.SelectedIndex)
+            {
+                _syncingCacheLimit = true;
+                try { NumericCacheLimitUnitComboBox.SelectedIndex = DisplayCacheLimitUnitComboBox.SelectedIndex; }
+                finally { _syncingCacheLimit = false; }
+            }
+        }
+
+        private void NumericCacheLimitUnitComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (_syncingCacheLimit)
+                return;
+            _lastCacheLimitEditFromDisplay = false;
+            if (DisplayCacheLimitUnitComboBox.SelectedIndex != NumericCacheLimitUnitComboBox.SelectedIndex)
+            {
+                _syncingCacheLimit = true;
+                try { DisplayCacheLimitUnitComboBox.SelectedIndex = NumericCacheLimitUnitComboBox.SelectedIndex; }
+                finally { _syncingCacheLimit = false; }
+            }
+        }
+
+        private void ClearWaveformCacheButton_Click(object sender, RoutedEventArgs e)
+        {
+            var (files, bytes) = new WaveformCacheService(long.MaxValue).Clear();
+            MessageBox.Show(
+                string.Format(_languageService.Get("Settings.ClearWaveformCacheDone"), files, WaveformCacheService.FormatSize(bytes)),
+                _languageService.Get("Settings.Title"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private bool HasDuplicateHotKeys()
@@ -380,6 +476,10 @@ namespace PotatoMusicPlayer.Views
         {
             var defaults = new WaveformZoomSettings();
             ShowWaveformCheck.IsChecked = true;
+            ProgressiveWaveformCheck.IsChecked = defaults.ProgressiveWaveform;
+            SaveWaveformCacheCheck.IsChecked = defaults.SaveWaveformCache;
+            DisplayCacheLimitValueText.Text = defaults.WaveformCacheLimitValue.ToString("0.##");
+            DisplayCacheLimitUnitComboBox.SelectedIndex = Math.Clamp((int)defaults.WaveformCacheLimitUnit, 0, 2);
             CursorModeComboBox.SelectedIndex = 0;
             MinZoomLevelText.Text = defaults.MinZoomLevel.ToString("0.##");
             ZoomFactorText.Text = defaults.ZoomFactor.ToString("0.##");
@@ -419,6 +519,12 @@ namespace PotatoMusicPlayer.Views
             DisplayTitleText.Text = _languageService.Get("Settings.DisplayTitle");
             DisplayHintText.Text = _languageService.Get("Settings.DisplayHint");
             ShowWaveformLabelText.Text = _languageService.Get("Settings.ShowWaveform");
+            ProgressiveWaveformLabelText.Text = _languageService.Get("Settings.ProgressiveWaveform");
+            SaveWaveformCacheLabelText.Text = _languageService.Get("Settings.SaveWaveformCache");
+            ClearWaveformCacheLabelText.Text = _languageService.Get("Settings.ClearWaveformCache");
+            CacheLimitLabelText.Text = _languageService.Get("Settings.WaveformCacheLimit");
+            NumericCacheLimitLabelText.Text = _languageService.Get("Settings.WaveformCacheLimit");
+            ClearWaveformCacheButton.Content = _languageService.Get("Common.Clear");
             ShowMinimapLabelText.Text = _languageService.Get("Settings.ShowMinimap");
             WaveformDetailTitleText.Text = _languageService.Get("Settings.WaveformDetail");
             MinimapDetailTitleText.Text = _languageService.Get("Settings.MinimapDetail");

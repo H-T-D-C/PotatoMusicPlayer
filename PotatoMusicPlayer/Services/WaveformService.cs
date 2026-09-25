@@ -24,6 +24,13 @@ namespace PotatoMusicPlayer.Services
         public event EventHandler<double> ProgressChanged;
 
         /// <summary>
+        /// 生成途中の部分波形の通知。バーは先頭から順に確定するため、
+        /// 配列の先頭側が有効なスナップショット（コピー）を渡す。
+        /// 購読者がいない場合はコピーを作らない。
+        /// </summary>
+        public event EventHandler<float[]> PartialWaveformReady;
+
+        /// <summary>
         /// 指定したバー数の振幅データ（0.0 ~ 1.0の正規化された値）を非同期生成する。
         /// 動画編集ソフト風の「音量レベルの棒グラフ」表示を想定し、
         /// 各バーはその区間内のピーク振幅（絶対値の最大）を表す。
@@ -91,7 +98,11 @@ namespace PotatoMusicPlayer.Services
                         result[bar] = Math.Clamp(peak, 0f, 1f);
 
                         if (bar % progressInterval == 0)
+                        {
                             ProgressChanged?.Invoke(this, (double)bar / actualBarCount);
+                            if (PartialWaveformReady != null)
+                                PartialWaveformReady.Invoke(this, (float[])result.Clone());
+                        }
                     }
                 }
             }

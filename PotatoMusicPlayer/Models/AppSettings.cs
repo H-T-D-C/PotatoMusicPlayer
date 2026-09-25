@@ -26,6 +26,13 @@ namespace PotatoMusicPlayer.Models
         Seconds
     }
 
+    public enum CacheSizeUnit
+    {
+        KB,
+        MB,
+        GB
+    }
+
     /// <summary>
     /// アプリケーション全体の設定
     /// </summary>
@@ -234,5 +241,9 @@ namespace PotatoMusicPlayer.Models
         public int MinimapHeight { get; set; } = 16;
         public int HorizontalDetail { get; set; } = 100;
         public int VerticalDetail { get; set; } = 100;
+        public bool ProgressiveWaveform { get; set; } = true;
+        public bool SaveWaveformCache { get; set; } = true;
+        public double WaveformCacheLimitValue { get; set; } = 512;
+        public CacheSizeUnit WaveformCacheLimitUnit { get; set; } = CacheSizeUnit.MB;
     }
 }

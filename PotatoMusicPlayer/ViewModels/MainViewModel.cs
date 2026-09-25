@@ -532,14 +532,47 @@ namespace PotatoMusicPlayer.ViewModels
             };
             waveformService.ProgressChanged += progressHandler;
 
+            // 逐次表示が有効な場合、生成途中の部分波形も公開して描画する。
+            EventHandler<float[]> partialHandler = null;
+            if (Settings.WaveformZoom.ProgressiveWaveform)
+            {
+                partialHandler = (sender, snapshot) =>
+                {
+                    System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (requestId == _waveformRequestId)
+                            CurrentWaveformData = snapshot;
+                    }));
+                };
+                waveformService.PartialWaveformReady += partialHandler;
+            }
+
             try
             {
+                WaveformCacheService cacheService = null;
+                if (Settings.WaveformZoom.SaveWaveformCache)
+                {
+                    long maxBytes = WaveformCacheService.ToBytes(
+                        Settings.WaveformZoom.WaveformCacheLimitValue,
+                        Settings.WaveformZoom.WaveformCacheLimitUnit);
+                    cacheService = new WaveformCacheService(maxBytes);
+                    if (cacheService.TryLoad(filePath, barCount, out float[] cachedData) &&
+                        requestId == _waveformRequestId)
+                    {
+                        CurrentWaveformData = cachedData;
+                        WaveformProgress = 1;
+                        return;
+                    }
+                }
+
                 float[] data = await waveformService.GenerateWaveformAsync(filePath, barCount);
                 if (requestId == _waveformRequestId)
                 {
                     CurrentWaveformData = data;
                     WaveformProgress = 1;
                 }
+                if (cacheService != null && data.Length > 0)
+                    cacheService.Save(filePath, barCount, data);
             }
             catch (Exception ex)
             {
@@ -552,6 +585,8 @@ namespace PotatoMusicPlayer.ViewModels
             }
             finally
             {
+                if (partialHandler != null)
+                    waveformService.PartialWaveformReady -= partialHandler;
                 waveformService.ProgressChanged -= progressHandler;
             }
         }
@@ -610,11 +645,44 @@ namespace PotatoMusicPlayer.ViewModels
             if (ZoomState != null)
             {
                 ZoomState.CurrentPlaybackPosition = state.CurrentPosition.TotalSeconds;
+                ReconcileWaveformDuration(state.Duration.TotalSeconds);
                 if (state.State == PlayState.Playing)
                     UpdateWaveformFollow(state.CurrentPosition.TotalSeconds);
                 else if (wasPlaying && Settings.WaveformZoom.CursorMode == CursorDisplayMode.CenterFixed)
                     UpdateWaveformFollow(state.CurrentPosition.TotalSeconds);
             }
+        }
+
+        /// <summary>
+        /// 再生中の実長さとズーム状態の全体長さが食い違っている場合、表示範囲の割合を保ったまま補正する。
+        /// 読込時の長さは推定値のため、VBR等で実長さとずれることがある。補正後は通知して再描画する。
+        /// </summary>
+        private void ReconcileWaveformDuration(double playerTotalSeconds)
+        {
+            var zoomState = ZoomState;
+            if (zoomState == null || playerTotalSeconds <= 0)
+                return;
+
+            double oldTotal = zoomState.TotalDuration;
+            if (oldTotal <= 0)
+            {
+                ResetWaveformZoom(playerTotalSeconds);
+                return;
+            }
+
+            if (Math.Abs(playerTotalSeconds - oldTotal) <= Math.Max(0.5, oldTotal * 0.005))
+                return;
+
+            double factor = playerTotalSeconds / oldTotal;
+            zoomState.TotalDuration = playerTotalSeconds;
+            zoomState.MaxZoomLevel = playerTotalSeconds;
+            zoomState.MinZoomLevel = Math.Min(Math.Clamp(Settings.WaveformZoom.MinZoomLevel, 0.05, 60), playerTotalSeconds);
+            double newWidth = Math.Clamp(zoomState.CurrentZoomLevel * factor, zoomState.MinZoomLevel, playerTotalSeconds);
+            double maxStart = Math.Max(0, playerTotalSeconds - newWidth);
+            zoomState.VisibleRangeStart = Math.Clamp(zoomState.VisibleRangeStart * factor, 0, maxStart);
+            zoomState.CurrentZoomLevel = newWidth;
+            zoomState.VisibleRangeEnd = zoomState.VisibleRangeStart + newWidth;
+            OnPropertyChanged(nameof(ZoomState));
         }
 
         private void UpdatePendingWaveformSeek(double position)

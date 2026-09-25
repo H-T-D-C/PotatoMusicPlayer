@@ -48,6 +48,9 @@ namespace PotatoMusicPlayer.Services
                     settings?.EnsureDefaultHotKeys();
                     if (settings != null && settings.WaveformZoom == null)
                         settings.WaveformZoom = new WaveformZoomSettings();
+                    // 旧設定ファイルには存在しない項目は既定値を適用する。
+                    if (settings?.WaveformZoom != null && !json.Contains("\"ProgressiveWaveform\"", StringComparison.Ordinal))
+                        settings.WaveformZoom.ProgressiveWaveform = true;
                     
                     return settings ?? CreateDefaultSettings();
                 }
