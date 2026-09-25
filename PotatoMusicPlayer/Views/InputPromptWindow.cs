@@ -12,7 +12,7 @@ namespace PotatoMusicPlayer.Views
         private readonly TextBox _input;
         private readonly Func<string, bool> _isValid;
         private readonly Brush _buttonBackground;
-        private readonly Brush _buttonHoverBackground;
+        private readonly Style _buttonStyle;
 
         private InputPromptWindow(string title, string label, string initialValue, Func<string, bool> isValid, LanguageService languageService)
         {
@@ -24,7 +24,7 @@ namespace PotatoMusicPlayer.Views
             _isValid = isValid;
             Background = GetThemeBrush("SurfaceWindowBrush");
             _buttonBackground = GetThemeBrush("SurfaceControlBrush");
-            _buttonHoverBackground = GetThemeBrush("MenuHoverBrush");
+            _buttonStyle = Application.Current?.TryFindResource("SettingsInputButtonStyle") as Style;
 
             var panel = new Grid { Margin = new Thickness(16) };
             panel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -54,21 +54,17 @@ namespace PotatoMusicPlayer.Views
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) };
             var cancel = new Button
             {
-                Content = languageService?.Get("Common.Cancel") ?? "キャンセル", MinWidth = 76, IsCancel = true, Margin = new Thickness(0, 0, 8, 0),
+                Content = languageService?.Get("Common.Cancel") ?? "キャンセル", MinWidth = 76, Height = 26, IsCancel = true, Margin = new Thickness(0, 0, 8, 0),
                 Background = _buttonBackground, Foreground = GetThemeBrush("TextPrimaryBrush"),
-                BorderBrush = Brushes.Transparent
+                BorderBrush = GetThemeBrush("BorderControlBrush"), Style = _buttonStyle
             };
             var ok = new Button
             {
-                Content = languageService?.Get("Common.OK") ?? "OK", Tag = "Accept", MinWidth = 76,
+                Content = languageService?.Get("Common.OK") ?? "OK", Tag = "Accept", MinWidth = 76, Height = 26,
                 Background = GetThemeBrush("ApplyButtonBrush"),
                 Foreground = GetThemeBrush("AccentButtonForegroundBrush"),
-                BorderBrush = Brushes.Transparent
+                BorderBrush = GetThemeBrush("BorderControlBrush"), Style = _buttonStyle
             };
-            cancel.MouseEnter += Button_MouseEnter;
-            cancel.MouseLeave += Button_MouseLeave;
-            ok.MouseEnter += Button_MouseEnter;
-            ok.MouseLeave += Button_MouseLeave;
             ok.Click += (_, _) => AcceptIfValid();
             buttons.Children.Add(cancel);
             buttons.Children.Add(ok);
@@ -101,20 +97,6 @@ namespace PotatoMusicPlayer.Views
         {
             if (_isValid == null || _isValid(_input.Text))
                 DialogResult = true;
-        }
-
-        private void Button_MouseEnter(object sender, MouseEventArgs e)
-        {
-            if (sender is Button button)
-                button.Background = _buttonHoverBackground;
-        }
-
-        private void Button_MouseLeave(object sender, MouseEventArgs e)
-        {
-            if (sender is Button button)
-                button.Background = button.Tag?.ToString() == "Accept"
-                    ? GetThemeBrush("ApplyButtonBrush")
-                    : _buttonBackground;
         }
 
         private static Brush GetThemeBrush(string key)

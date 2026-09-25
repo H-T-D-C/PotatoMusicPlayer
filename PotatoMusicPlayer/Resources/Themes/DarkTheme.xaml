@@ -26,8 +26,8 @@
     <Color x:Key="RangeOverlayBorderColor">#64C864</Color>
     <Color x:Key="PlaybackCursorColor">#FFFFFF</Color>
     <Color x:Key="ScrollBarThumbColor">#777777</Color>
-    <Color x:Key="ResetButtonBackgroundColor">#E8E8E8</Color>
-    <Color x:Key="ResetButtonForegroundColor">#202020</Color>
+    <Color x:Key="ResetButtonBackgroundColor">#3C3C3C</Color>
+    <Color x:Key="ResetButtonForegroundColor">#DCDCDC</Color>
     <Color x:Key="AccentButtonForegroundColor">#FFFFFF</Color>
     <Color x:Key="PendingIndicatorColor">#FFD700</Color>
 

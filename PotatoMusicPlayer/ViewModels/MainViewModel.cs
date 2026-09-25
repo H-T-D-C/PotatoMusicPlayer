@@ -466,9 +466,12 @@ namespace PotatoMusicPlayer.ViewModels
             _isWaveformFollowSuppressed = false;
             double previousWidth = ZoomState?.CurrentZoomLevel ?? 0;
             double previousTotalDuration = ZoomState?.TotalDuration ?? 0;
-            ZoomState = _waveformZoomService.CreateInitialState(totalDuration);
+            var newState = _waveformZoomService.CreateInitialState(totalDuration);
             if (totalDuration <= 0)
+            {
+                ZoomState = newState;
                 return;
+            }
 
             double width;
             if (Settings.RememberWaveformZoom && previousWidth > 0)
@@ -484,7 +487,8 @@ namespace PotatoMusicPlayer.ViewModels
                     : Settings.DefaultWaveformZoomValue;
             }
 
-            _waveformZoomService.SetVisibleRangeCentered(ZoomState, Math.Min(width, totalDuration) / 2, width);
+            _waveformZoomService.SetVisibleRangeCentered(newState, Math.Min(width, totalDuration) / 2, width);
+            ZoomState = newState;
         }
 
         public void SeekAndPlay(double seconds)
