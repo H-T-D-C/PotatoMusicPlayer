@@ -4,7 +4,16 @@
 
 本書は、Potato Music Player の現行仕様と設計上の責務を定義する。過去の検討案や未実装の構想は記載せず、実装済みの挙動と今後の作業を分けて管理する。
 
-波形表示、ズーム、ミニマップ、再生ヘッドの詳細は [WaveformZoom_Specification.md](WaveformZoom_Specification.md) に委譲する。
+本書は開発者向けの親資料で、現行仕様の概要と各詳細資料への入口を示す。波形表示、ズーム、ミニマップ、再生ヘッドの詳細は [WaveformZoom_Specification.md](WaveformZoom_Specification.md) に委譲する。過去の調査・設計記録は [Archive](../Archive/README.md) を参照すること。アーカイブは当時の経緯を知るための資料であり、現在の実装と異なる場合がある。
+
+## 1.1 開発資料の構成
+
+- 本書: アプリ全体の機能、責務、非機能方針を示す親資料。
+- [再生・ファイル仕様](MediaPlayback_Specification.md): ファイル読み込み、LibVLC の状態遷移、シーク、ループ、関連する OS 登録。
+- [波形・ズーム・ミニマップ仕様](WaveformZoom_Specification.md): 操作仕様、範囲計算の考え方、描画・生成・キャッシュの仕様。
+- [発行ガイド](Release_Guide.md): .NET Runtime を含む Windows x64 配布物の作成と確認手順。
+
+実装との食い違いを見つけた場合は、コードを確認したうえでこの資料群を更新する。
 
 ## 2. アプリケーション概要
 
@@ -39,6 +48,7 @@ Loop: 全体は、プレイリスト未実装のため現在の曲を先頭か�
 - Windows タスクバーの再生・先頭・次へボタンに対応（「次へ」は現状停止動作）
 - ホットキーを設定画面から変更可能
 - 通常キーと修飾キー付きマウスホイールを登録可能
+- 起動時に現在のユーザーへ音声ファイルの「プログラムから開く」情報を登録する（既定のアプリは変更しない）
 
 ### 3.3 設定
 
@@ -64,15 +74,15 @@ Loop: 全体は、プレイリスト未実装のため現在の曲を先頭か�
 
 | 層 | 主な責務 | 主なファイル |
 | --- | --- | --- |
-| 画面 | レイアウト、マウス操作、描画 | `MainWindow.xaml(.cs)`、`MainWindow.Waveform.cs` |
-| ViewModel | 再生状態、設定反映、波形追従 | `ViewModels/MainViewModel.cs` |
-| 再生サービス | LibVLC のライフサイクル、再生状態 | `Services/MediaService.cs` |
-| 波形サービス | 音声からピーク値を非同期生成 | `Services/WaveformService.cs` |
-| ズームサービス | 表示範囲、倍率、境界の計算 | `Services/WaveformZoomService.cs` |
-| 設定サービス | JSON の読み書きと既定値 | `Services/SettingsService.cs` |
-| モデル | 再生状態、設定、ズーム状態 | `Models/` |
-| 設定画面 | 設定編集と未適用表示 | `Views/SettingsWindow.xaml(.cs)` |
-| テーマ | テーマ辞書の選択、OSテーマ変更への追従 | `Services/ThemeService.cs`、`Resources/Themes/` |
+| 画面 | レイアウト、マウス操作、描画 | `../../MainWindow.xaml(.cs)`、`../../MainWindow.Waveform.cs` |
+| ViewModel | 再生状態、設定反映、波形追従 | `../../ViewModels/MainViewModel.cs` |
+| 再生サービス | LibVLC のライフサイクル、再生状態 | `../../Services/MediaService.cs` |
+| 波形サービス | 音声からピーク値を非同期生成 | `../../Services/WaveformService.cs`、`../../Services/WaveformCacheService.cs` |
+| ズームサービス | 表示範囲、倍率、境界の計算 | `../../Services/WaveformZoomService.cs` |
+| 設定サービス | JSON の読み書きと既定値 | `../../Services/SettingsService.cs` |
+| モデル | 再生状態、設定、ズーム状態 | `../../Models/` |
+| 設定画面 | 設定編集と未適用表示 | `../../Views/SettingsWindow.xaml(.cs)` |
+| テーマ | テーマ辞書の選択、OSテーマ変更への追従 | `../../Services/ThemeService.cs`、`../../Resources/Themes/` |
 
 ### 4.1 テーマと配色リソース
 
@@ -93,6 +103,7 @@ Loop: 全体は、プレイリスト未実装のため現在の曲を先頭か�
 - プレイリスト、実際の次曲・前曲切替、フォルダスキャンは未実装。
 - イコライザー、音量正規化、ループ区間指定は未実装。
 - アプリ起動時、設定画面、Windows 標準ファイル選択ダイアログで一瞬白く表示される場合がある。WPF／Windows の初期描画に起因する既知問題として扱う。
+- 発行テストで、メインウィンドウを閉じた後もアプリプロセスが残る挙動を確認した。原因は未調査。
 - 自動テストプロジェクトは未作成で、再生・ドラッグ操作の確認は手動テストが中心。
 
 ## 7. 今後の作業候補

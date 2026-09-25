@@ -17,7 +17,7 @@ namespace PotatoMusicPlayer.Services
 
         public SettingsService()
         {
-            // %APPDATA%\Local\PotatoMusicPlayer\ 配下に設定ファイルを保存
+            // %LOCALAPPDATA%\PotatoMusicPlayer\ 配下に設定ファイルを保存
             _settingsDirectory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "PotatoMusicPlayer"

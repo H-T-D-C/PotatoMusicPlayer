@@ -1,7 +1,7 @@
 <Window x:Class="PotatoMusicPlayer.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="設定" Icon="pack://application:,,,/potato.png" Height="640" Width="640" WindowStartupLocation="CenterOwner"
+        Title="設定" Icon="pack://application:,,,/Resources/Icons/potato.png" Height="640" Width="640" WindowStartupLocation="CenterOwner"
         Style="{StaticResource AppWindowStyle}" ResizeMode="NoResize" Opacity="0">
     <Border BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" Padding="12" Background="{DynamicResource SurfacePanelBrush}">
         <Grid>

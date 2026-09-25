@@ -8,14 +8,18 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <AssemblyName>PotatoMusicPlayer</AssemblyName>
     <RootNamespace>PotatoMusicPlayer</RootNamespace>
-    <ApplicationIcon>potato.ico</ApplicationIcon>
+    <ApplicationIcon>Resources\Icons\potato.ico</ApplicationIcon>
     <PackageIcon>potato.png</PackageIcon>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
   <ItemGroup>
-    <Content Include="potato.ico" />
-    <Resource Include="potato.png" />
-    <Resource Include="assets\speaker\speakers_*.png" />
+    <Content Include="Resources\Icons\potato.ico" />
+    <Resource Include="Resources\Icons\potato.png" />
     <Resource Include="Resources\Icons\speaker_*.png" />
     <Content Include="Resources\Languages\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -23,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\..\PotatoMusicPlayer\PotatoMusicPlayer\PotatoMusicPlayer\potato.png">
+    <None Include="Resources\Icons\potato.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

@@ -7,7 +7,7 @@ namespace PotatoMusicPlayer.Utils
     {
         // アプリケーション情報
         public const string AppName = "Potato Music Player";
-        public const string AppVersion = "1.1.0";
+        public const string AppVersion = "1.3.0(Beta)";
         public const string AppAuthor = "Velters";
 
         // ウィンドウ

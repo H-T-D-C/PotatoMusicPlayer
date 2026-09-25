@@ -140,8 +140,9 @@
 
 | 責務 | 実装 |
 | --- | --- |
-| ズーム状態 | `Models/WaveformZoomState.cs` |
-| 範囲計算 | `Services/WaveformZoomService.cs` |
-| 再生位置追従 | `ViewModels/MainViewModel.cs` |
-| 波形・ミニマップ描画 | `MainWindow.Waveform.cs`、`MainWindow.xaml.cs` |
-| 表示設定 | `Models/AppSettings.cs`、`Views/SettingsWindow.xaml(.cs)` |
+| ズーム状態 | `../../Models/WaveformZoomState.cs` |
+| 範囲計算 | `../../Services/WaveformZoomService.cs` |
+| 再生位置追従 | `../../ViewModels/MainViewModel.cs` |
+| 波形・ミニマップ描画 | `../../MainWindow.Waveform.cs`、`../../MainWindow.xaml.cs` |
+| 波形生成・キャッシュ | `../../Services/WaveformService.cs`、`../../Services/WaveformCacheService.cs` |
+| 表示設定 | `../../Models/AppSettings.cs`、`../../Views/SettingsWindow.xaml(.cs)` |
